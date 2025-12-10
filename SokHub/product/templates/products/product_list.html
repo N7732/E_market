@@ -1,0 +1,536 @@
+<!-- templates/products/product_list.html -->
+{% extends "base.html" %}
+
+{% block title %}Products - SokHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 25px;
+        height: 100%;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-image-container {
+        height: 220px;
+        overflow: hidden;
+        position: relative;
+        background-color: #f8f9fa;
+    }
+    
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s;
+    }
+    
+    .product-card:hover .product-image {
+        transform: scale(1.05);
+    }
+    
+    .product-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+    }
+    
+    .badge-discount {
+        background: linear-gradient(135deg, #FF00FF, #cc00cc);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .badge-new {
+        background: linear-gradient(135deg, #000000, #333333);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .badge-out-of-stock {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .product-price {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #000000;
+    }
+    
+    .product-old-price {
+        text-decoration: line-through;
+        color: #6c757d;
+        font-size: 1rem;
+        margin-left: 8px;
+    }
+    
+    .product-rating {
+        color: #ffc107;
+        font-size: 0.9rem;
+    }
+    
+    .product-vendor {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .product-vendor a {
+        color: #FF00FF;
+        text-decoration: none;
+    }
+    
+    .product-vendor a:hover {
+        text-decoration: underline;
+    }
+    
+    .stock-badge {
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .stock-in { background-color: #d4edda; color: #155724; }
+    .stock-low { background-color: #fff3cd; color: #856404; }
+    .stock-out { background-color: #f8d7da; color: #721c24; }
+    
+    .filter-sidebar {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 25px;
+        height: fit-content;
+    }
+    
+    .filter-header {
+        border-bottom: 2px solid #FF00FF;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .price-range-slider {
+        width: 100%;
+        margin: 20px 0;
+    }
+    
+    .sort-dropdown .dropdown-menu {
+        min-width: 200px;
+    }
+    
+    .pagination .page-link {
+        color: #000000;
+        border: 1px solid #dee2e6;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #FF00FF;
+        color: white;
+        border-color: #FF00FF;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #000000;
+        border-color: #000000;
+        color: white;
+    }
+    
+    .empty-state {
+        padding: 60px 20px;
+        text-align: center;
+    }
+    
+    .empty-state-icon {
+        font-size: 5rem;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-3">
+                <i class="fas fa-store me-2 text-magenta"></i> Browse Products
+            </h1>
+            <p class="lead text-muted">
+                Discover amazing products from our trusted vendors
+            </p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Filters Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="filter-sidebar sticky-top" style="top: 20px;">
+                <h5 class="filter-header">
+                    <i class="fas fa-filter me-2 text-magenta"></i> Filters
+                </h5>
+                
+                <form method="get" id="filter-form">
+                    <!-- Search -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Search</label>
+                        {{ search_form.q }}
+                    </div>
+                    
+                    <!-- Category -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Category</label>
+                        {{ search_form.category }}
+                    </div>
+                    
+                    <!-- Price Range -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Price Range</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                {{ search_form.min_price }}
+                            </div>
+                            <div class="col-6">
+                                {{ search_form.max_price }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- In Stock Only -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ search_form.in_stock }}
+                            <label class="form-check-label" for="{{ search_form.in_stock.id_for_label }}">
+                                In stock only
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Sort By -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Sort By</label>
+                        {{ search_form.sort_by }}
+                    </div>
+                    
+                    <!-- Filter Buttons -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-magenta">
+                            <i class="fas fa-search me-2"></i> Apply Filters
+                        </button>
+                        <a href="{% url 'product_list' %}" class="btn btn-outline-magenta">
+                            <i class="fas fa-times me-2"></i> Clear All
+                        </a>
+                    </div>
+                </form>
+                
+                <!-- Categories List -->
+                <div class="mt-5">
+                    <h6 class="fw-bold mb-3">Categories</h6>
+                    <div class="list-group list-group-flush">
+                        {% for category in categories %}
+                        <a href="{% url 'category_detail' category.slug %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ category.name }}
+                            <span class="badge bg-magenta rounded-pill">{{ category.products.count }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Products Grid -->
+        <div class="col-lg-9">
+            <!-- Products Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="mb-0">
+                        {% if search_form.q.value %}
+                            Search Results for "{{ search_form.q.value }}"
+                        {% else %}
+                            All Products
+                        {% endif %}
+                        <span class="text-muted">({{ page_obj.paginator.count }} items)</span>
+                    </h5>
+                </div>
+                <div class="d-flex align-items-center">
+                    <!-- Sort Dropdown for Mobile -->
+                    <div class="dropdown d-lg-none me-3">
+                        <button class="btn btn-outline-magenta dropdown-toggle" type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="fas fa-sort-amount-down me-2"></i> Sort
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="?sort=newest">Newest</a>
+                            <a class="dropdown-item" href="?sort=price_low">Price: Low to High</a>
+                            <a class="dropdown-item" href="?sort=price_high">Price: High to Low</a>
+                            <a class="dropdown-item" href="?sort=popular">Most Popular</a>
+                            <a class="dropdown-item" href="?sort=rating">Highest Rated</a>
+                        </div>
+                    </div>
+                    
+                    <!-- View Toggle -->
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-magenta active" id="grid-view">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-magenta" id="list-view">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Featured Products (Only on first page) -->
+            {% if page_obj.number == 1 and featured_products %}
+            <div class="mb-5">
+                <h5 class="mb-4">
+                    <i class="fas fa-star me-2 text-magenta"></i> Featured Products
+                </h5>
+                <div class="row">
+                    {% for product in featured_products %}
+                    <div class="col-md-3 col-6 mb-4">
+                        {% include "products/includes/product_card.html" with product=product %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Products Grid -->
+            {% if page_obj.object_list %}
+            <div id="products-grid" class="row">
+                {% for product in page_obj %}
+                <div class="col-xl-3 col-lg-4 col-md-4 col-sm-6 mb-4">
+                    {% include "products/includes/product_card.html" with product=product %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Products List View (Hidden by default) -->
+            <div id="products-list" class="d-none">
+                {% for product in page_obj %}
+                <div class="card mb-3">
+                    <div class="row g-0">
+                        <div class="col-md-3">
+                            <a href="{% url 'product_detail' product.slug %}">
+                                {% if product.main_image %}
+                                <img src="{{ product.main_image.url }}" class="img-fluid rounded-start" 
+                                     alt="{{ product.name }}" style="height: 200px; width: 100%; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-light d-flex align-items-center justify-content-center" 
+                                     style="height: 200px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h5 class="card-title">
+                                            <a href="{% url 'product_detail' product.slug %}" 
+                                               class="text-decoration-none text-dark">
+                                                {{ product.name }}
+                                            </a>
+                                        </h5>
+                                        <p class="card-text text-muted small mb-2">
+                                            {{ product.short_description|truncatechars:150 }}
+                                        </p>
+                                        <div class="mb-2">
+                                            <span class="product-vendor">
+                                                Sold by: 
+                                                <a href="#">{{ product.vendor.vendorprofile.business_name|default:product.vendor.username }}</a>
+                                            </span>
+                                        </div>
+                                        <div class="product-rating mb-2">
+                                            {% for i in "12345"|make_list %}
+                                                {% if forloop.counter <= product.average_rating %}
+                                                    <i class="fas fa-star"></i>
+                                                {% else %}
+                                                    <i class="far fa-star"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                            <span class="text-muted ms-2">({{ product.reviews.count }})</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="product-price mb-2">
+                                            {{ product.price }} RWF
+                                            {% if product.compare_at_price %}
+                                            <span class="product-old-price">
+                                                {{ product.compare_at_price }} RWF
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if product.get_discount_percentage %}
+                                        <div class="badge-discount mb-2">
+                                            -{{ product.get_discount_percentage }}%
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if product.is_in_stock %}
+                                            {% if product.get_available_quantity <= product.low_stock_threshold %}
+                                                <span class="stock-badge stock-low">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    Only {{ product.get_available_quantity }} left
+                                                </span>
+                                            {% else %}
+                                                <span class="stock-badge stock-in">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    In Stock
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="stock-badge stock-out">
+                                                <i class="fas fa-times-circle me-1"></i>
+                                                Out of Stock
+                                            </span>
+                                        {% endif %}
+                                        
+                                        <div class="mt-3">
+                                            <a href="{% url 'product_detail' product.slug %}" 
+                                               class="btn btn-magenta btn-sm">
+                                                <i class="fas fa-eye me-1"></i> View Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>No products found</h3>
+                <p class="text-muted mb-4">
+                    {% if search_form.q.value %}
+                        No products match your search "{{ search_form.q.value }}"
+                    {% else %}
+                        There are no products available at the moment.
+                    {% endif %}
+                </p>
+                <a href="{% url 'product_list' %}" class="btn btn-magenta">
+                    <i class="fas fa-undo me-2"></i> View All Products
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // View toggle
+    const gridViewBtn = document.getElementById('grid-view');
+    const listViewBtn = document.getElementById('list-view');
+    const productsGrid = document.getElementById('products-grid');
+    const productsList = document.getElementById('products-list');
+    
+    gridViewBtn.addEventListener('click', function() {
+        this.classList.add('active');
+        listViewBtn.classList.remove('active');
+        productsGrid.classList.remove('d-none');
+        productsList.classList.add('d-none');
+    });
+    
+    listViewBtn.addEventListener('click', function() {
+        this.classList.add('active');
+        gridViewBtn.classList.remove('active');
+        productsGrid.classList.add('d-none');
+        productsList.classList.remove('d-none');
+    });
+    
+    // Price range validation
+    const minPrice = document.getElementById('{{ search_form.min_price.id_for_label }}');
+    const maxPrice = document.getElementById('{{ search_form.max_price.id_for_label }}');
+    
+    if (minPrice && maxPrice) {
+        const form = document.getElementById('filter-form');
+        form.addEventListener('submit', function(e) {
+            const minVal = parseFloat(minPrice.value);
+            const maxVal = parseFloat(maxPrice.value);
+            
+            if (minVal && maxVal && minVal > maxVal) {
+                e.preventDefault();
+                alert('Minimum price cannot be greater than maximum price');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

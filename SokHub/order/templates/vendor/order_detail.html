@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details | Vendor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .vendor-nav {
+            background-color: #2c3e50;
+        }
+        .order-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .order-timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        .timeline-step {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .timeline-step::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #dee2e6;
+            background: white;
+        }
+        .timeline-step.completed::before {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .timeline-step.active::before {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark vendor-nav">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="order_list.html">
+                <i class="bi bi-arrow-left"></i> Back to Orders
+            </a>
+            <span class="text-light">TechGadgets Inc. Vendor Dashboard</span>
+        </div>
+    </nav>
+
+    <div class="container-fluid p-4">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1>Order #ORD-2024-78945</h1>
+                        <p class="text-muted">Customer: John Smith · Placed: March 15, 2024 · 10:30 AM</p>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary">
+                            <i class="bi bi-printer"></i> Print
+                        </button>
+                        <button class="btn btn-outline-secondary">
+                            <i class="bi bi-download"></i> Export
+                        </button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
+                            Update Status
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Customer Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-2"><strong>John Smith</strong></p>
+                                <p class="mb-2">john.smith@email.com</p>
+                                <p class="mb-2">(555) 123-4567</p>
+                                <hr>
+                                <h6>Shipping Address</h6>
+                                <p class="mb-1">123 Main St</p>
+                                <p class="mb-1">New York, NY 10001</p>
+                                <p class="mb-0">United States</p>
+                                <div class="mt-3">
+                                    <a href="#" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-envelope"></i> Email Customer
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Order Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <p class="mb-2"><strong>Order Status:</strong></p>
+                                        <p class="mb-2"><strong>Payment:</strong></p>
+                                        <p class="mb-2"><strong>Shipping Method:</strong></p>
+                                        <p class="mb-2"><strong>Tracking Number:</strong></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="badge bg-warning">Shipped</span>
+                                        <p class="mb-2 text-success">Paid</p>
+                                        <p class="mb-2">Standard Shipping</p>
+                                        <p class="mb-2">USPS #940550369930045</p>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <strong>Order Total:</strong>
+                                    <strong class="text-primary">$307.46</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Order Items</h5>
+                        <span class="badge bg-secondary">3 items</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>SKU</th>
+                                        <th>Price</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                        <th>Stock</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="https://via.placeholder.com/50" class="img-thumbnail me-3">
+                                                <div>
+                                                    <strong>Premium Wireless Headphones</strong><br>
+                                                    <small class="text-muted">Color: Black</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>AUD-789</td>
+                                        <td>$99.99</td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm" value="1" style="width: 70px;">
+                                        </td>
+                                        <td>$99.99</td>
+                                        <td><span class="badge bg-success">45 in stock</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="https://via.placeholder.com/50" class="img-thumbnail me-3">
+                                                <div>
+                                                    <strong>USB-C Cable</strong><br>
+                                                    <small class="text-muted">Pack of 2</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>CAB-456</td>
+                                        <td>$14.99</td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm" value="2" style="width: 70px;">
+                                        </td>
+                                        <td>$29.98</td>
+                                        <td><span class="badge bg-warning">12 in stock</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="https://via.placeholder.com/50" class="img-thumbnail me-3">
+                                                <div>
+                                                    <strong>Phone Case</strong><br>
+                                                    <small class="text-muted">Model: iPhone 15</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>CAS-123</td>
+                                        <td>$24.99</td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm" value="1" style="width: 70px;">
+                                        </td>
+                                        <td>$24.99</td>
+                                        <td><span class="badge bg-success">78 in stock</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Add internal note...">
+                                    <button class="btn btn-outline-secondary">Add Note</button>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-outline-primary">
+                                    <i class="bi bi-box-seam"></i> Update Quantities
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Order Timeline</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="order-timeline">
+                            <div class="timeline-step completed">
+                                <h6>Order Placed</h6>
+                                <p class="text-muted small">March 15, 2024 · 10:30 AM</p>
+                                <p>Customer placed order via website</p>
+                            </div>
+                            <div class="timeline-step completed">
+                                <h6>Payment Confirmed</h6>
+                                <p class="text-muted small">March 15, 2024 · 10:32 AM</p>
+                                <p>Credit card payment processed successfully</p>
+                            </div>
+                            <div class="timeline-step completed">
+                                <h6>Order Processed</h6>
+                                <p class="text-muted small">March 16, 2024 · 9:15 AM</p>
+                                <p>Items picked and packed for shipping</p>
+                            </div>
+                            <div class="timeline-step active">
+                                <h6>Shipped</h6>
+                                <p class="text-muted small">March 17, 2024 · 2:30 PM</p>
+                                <p>Package handed to USPS · Tracking: 940550369930045</p>
+                            </div>
+                            <div class="timeline-step">
+                                <h6>Delivered</h6>
+                                <p class="text-muted small">Pending</p>
+                                <p>Estimated delivery: March 19, 2024</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Order Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success">
+                                <i class="bi bi-truck"></i> Mark as Shipped
+                            </button>
+                            <button class="btn btn-primary">
+                                <i class="bi bi-envelope"></i> Send Tracking
+                            </button>
+                            <button class="btn btn-warning">
+                                <i class="bi bi-clock-history"></i> Update ETA
+                            </button>
+                            <button class="btn btn-outline-danger">
+                                <i class="bi bi-x-circle"></i> Cancel Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Financial Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>Subtotal:</td>
+                                    <td class="text-end">$274.97</td>
+                                </tr>
+                                <tr>
+                                    <td>Shipping:</td>
+                                    <td class="text-end">$9.99</td>
+                                </tr>
+                                <tr>
+                                    <td>Tax:</td>
+                                    <td class="text-end">$22.50</td>
+                                </tr>
+                                <tr>
+                                    <td>Discount:</td>
+                                    <td class="text-end text-success">-$0.00</td>
+                                </tr>
+                                <tr class="table-active">
+                                    <td><strong>Total Revenue:</strong></td>
+                                    <td class="text-end"><strong>$307.46</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Platform Fee (5%):</td>
+                                    <td class="text-end">-$15.37</td>
+                                </tr>
+                                <tr>
+                                    <td>Payment Processing:</td>
+                                    <td class="text-end">-$9.22</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Net Earnings:</strong></td>
+                                    <td class="text-end"><strong>$282.87</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Internal Notes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <textarea class="form-control" rows="3" placeholder="Add private note..."></textarea>
+                            <button class="btn btn-sm btn-primary mt-2">Save Note</button>
+                        </div>
+                        
+                        <div class="border-start border-primary ps-3 mb-3">
+                            <p class="small mb-1"><strong>Admin User</strong> · Today, 10:30 AM</p>
+                            <p class="small mb-0">Customer requested expedited shipping but paid for standard. No change.</p>
+                        </div>
+                        
+                        <div class="border-start border-info ps-3">
+                            <p class="small mb-1"><strong>Warehouse</strong> · Yesterday, 3:45 PM</p>
+                            <p class="small mb-0">Headphones temporarily out of stock. Restocking tomorrow morning.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Update Status Modal -->
+    <div class="modal fade" id="updateStatusModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Order Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">New Status</label>
+                            <select class="form-select">
+                                <option>Pending</option>
+                                <option selected>Processing</option>
+                                <option>Shipped</option>
+                                <option>Delivered</option>
+                                <option>Cancelled</option>
+                                <option>Refunded</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tracking Number (if shipping)</label>
+                            <input type="text" class="form-control" placeholder="USPS #...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" rows="3" placeholder="Add update notes..."></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label">
+                                Notify customer via email
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">Update Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

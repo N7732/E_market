@@ -1,0 +1,164 @@
+<!-- templates/customer/about.html -->
+{% extends "base.html" %}
+
+{% block title %}About Us - SokHub{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="row align-items-center mb-5">
+        <div class="col-lg-6">
+            <h1 class="display-4 fw-bold mb-4">
+                About <span class="text-magenta">SokHub</span>
+            </h1>
+            <p class="lead mb-4">
+                SokHub is a modern marketplace platform connecting buyers and sellers 
+                with a focus on security, convenience, and excellent user experience.
+            </p>
+            <div class="d-flex gap-3">
+                <a href="{% url 'register' %}" class="btn btn-magenta btn-lg">
+                    <i class="fas fa-user-plus me-2"></i> Join Now
+                </a>
+                <a href="{% url 'contact' %}" class="btn btn-outline-magenta btn-lg">
+                    <i class="fas fa-envelope me-2"></i> Contact Us
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                 alt="About SokHub" class="img-fluid rounded-3 shadow-lg">
+        </div>
+    </div>
+    
+    <!-- Mission & Vision -->
+    <div class="row mb-5">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 border-magenta">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="bg-magenta text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-bullseye fa-2x"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-center mb-3">Our Mission</h3>
+                    <p class="text-center">
+                        To create a secure and efficient marketplace that empowers 
+                        local businesses while providing customers with a seamless 
+                        shopping experience.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 border-magenta">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="bg-black text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-eye fa-2x"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-center mb-3">Our Vision</h3>
+                    <p class="text-center">
+                        To become the leading digital marketplace in the region, 
+                        known for innovation, reliability, and customer satisfaction.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Features -->
+    <div class="mb-5">
+        <h2 class="text-center mb-4">Why Choose SokHub?</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-shield-alt fa-3x text-magenta mb-3"></i>
+                        <h4>Secure Platform</h4>
+                        <p>Advanced security measures to protect your data and transactions.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-mobile-alt fa-3x text-magenta mb-3"></i>
+                        <h4>MTN Momo Integration</h4>
+                        <p>Seamless payments through Rwanda's most popular mobile money service.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-file-pdf fa-3x text-magenta mb-3"></i>
+                        <h4>Digital Documentation</h4>
+                        <p>Automatic PDF invoice generation for all transactions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Team -->
+    <div class="mb-5">
+        <h2 class="text-center mb-4">Our Values</h2>
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-handshake fa-2x text-magenta mb-3"></i>
+                        <h5>Trust</h5>
+                        <p class="small">Building reliable relationships between buyers and sellers.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-lightbulb fa-2x text-magenta mb-3"></i>
+                        <h5>Innovation</h5>
+                        <p class="small">Continuously improving our platform with new features.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-users fa-2x text-magenta mb-3"></i>
+                        <h5>Community</h5>
+                        <p class="small">Supporting local businesses and growing together.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-headset fa-2x text-magenta mb-3"></i>
+                        <h5>Support</h5>
+                        <p class="small">24/7 customer support for all your needs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Call to Action -->
+    <div class="bg-black text-white rounded-3 p-5 text-center">
+        <h2 class="mb-3">Ready to Join Our Marketplace?</h2>
+        <p class="lead mb-4">Register today and experience the future of e-commerce.</p>
+        <a href="{% url 'register' %}" class="btn btn-magenta btn-lg">
+            <i class="fas fa-user-plus me-2"></i> Create Free Account
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,362 @@
+<!-- templates/customer/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SokHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --customer-primary: #000000;
+        --customer-accent: #FF00FF;
+        --customer-dark: #0a0a0a;
+        --customer-light: #1a1a1a;
+        --customer-text: #ffffff;
+    }
+    
+    body {
+        background-color: var(--customer-dark);
+        color: var(--customer-text);
+    }
+    
+    .navbar, footer {
+        background-color: var(--customer-primary) !important;
+    }
+    
+    .card {
+        background-color: var(--customer-light);
+        border: 1px solid rgba(255, 0, 255, 0.2);
+        color: var(--customer-text);
+    }
+    
+    .card-header {
+        background-color: rgba(255, 0, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 0, 255, 0.3);
+    }
+    
+    .text-magenta {
+        color: var(--customer-accent) !important;
+    }
+    
+    .btn-magenta {
+        background: linear-gradient(135deg, var(--customer-accent), #cc00cc);
+        border: none;
+        color: white;
+    }
+    
+    .btn-magenta:hover {
+        background: linear-gradient(135deg, #cc00cc, var(--customer-accent));
+        color: white;
+    }
+    
+    .dashboard-stats {
+        background: linear-gradient(135deg, rgba(255, 0, 255, 0.1), rgba(0, 0, 0, 0.3));
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(255, 0, 255, 0.2);
+    }
+    
+    .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+        transition: transform 0.3s;
+        border: 1px solid rgba(255, 0, 255, 0.1);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--customer-accent);
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        background: rgba(255, 0, 255, 0.1);
+        color: var(--customer-accent);
+        font-size: 24px;
+    }
+    
+    .order-item {
+        border-left: 4px solid var(--customer-accent);
+        padding-left: 15px;
+        margin-bottom: 15px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 15px;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .badge-status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .status-pending { background-color: #ff9800; color: white; }
+    .status-processing { background-color: #2196f3; color: white; }
+    .status-delivered { background-color: #4caf50; color: white; }
+    .status-cancelled { background-color: #f44336; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Welcome Section -->
+    <div class="dashboard-stats">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-6 fw-bold">
+                    Welcome back, <span class="text-magenta">{{ user.username }}</span>!
+                </h1>
+                <p class="lead mb-0">
+                    <i class="fas fa-user-circle me-2 text-magenta"></i>
+                    Customer Dashboard
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="d-grid gap-2 d-md-block">
+                    <a href="{% url 'customer_profile' %}" class="btn btn-outline-magenta me-2">
+                        <i class="fas fa-user-edit me-1"></i> Edit Profile
+                    </a>
+                    <a href="#" class="btn btn-magenta">
+                        <i class="fas fa-shopping-cart me-1"></i> Start Shopping
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-icon mx-auto">
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
+                <h3 class="fw-bold">0</h3>
+                <p class="text-muted mb-0">Total Orders</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-icon mx-auto">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h3 class="fw-bold">0</h3>
+                <p class="text-muted mb-0">Pending Orders</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-icon mx-auto">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h3 class="fw-bold">0</h3>
+                <p class="text-muted mb-0">Completed Orders</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-icon mx-auto">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3 class="fw-bold">0 RWF</h3>
+                <p class="text-muted mb-0">Total Spent</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recent Orders -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2 text-magenta"></i> Recent Orders
+                    </h5>
+                    <a href="#" class="btn btn-sm btn-outline-magenta">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                        {% for order in recent_orders %}
+                        <div class="order-item">
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <strong class="text-magenta">#{{ order.id }}</strong>
+                                    <p class="mb-0 small">{{ order.created_at|date:"M d, Y" }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0">{{ order.items.count }} item(s)</p>
+                                    <p class="mb-0 small text-muted">Vendor: {{ order.vendor.business_name }}</p>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="badge-status status-{{ order.status|lower }}">
+                                        {{ order.status }}
+                                    </span>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <strong>{{ order.total_amount }} RWF</strong>
+                                    <div class="mt-2">
+                                        <a href="#" class="btn btn-sm btn-outline-magenta">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </a>
+                                        <a href="#" class="btn btn-sm btn-magenta">
+                                            <i class="fas fa-download me-1"></i> PDF
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No orders yet</h5>
+                            <p class="text-muted">Start shopping to see your orders here</p>
+                            <a href="#" class="btn btn-magenta">Browse Products</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2 text-magenta"></i> Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="#" class="btn btn-outline-magenta w-100 py-3">
+                                <i class="fas fa-search fa-2x mb-2"></i><br>
+                                Browse Products
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'customer_profile' %}" class="btn btn-outline-magenta w-100 py-3">
+                                <i class="fas fa-edit fa-2x mb-2"></i><br>
+                                Update Profile
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'account_settings' %}" class="btn btn-outline-magenta w-100 py-3">
+                                <i class="fas fa-cog fa-2x mb-2"></i><br>
+                                Account Settings
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar -->
+        <div class="col-lg-4">
+            <!-- Profile Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-circle me-2 text-magenta"></i> Profile Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-placeholder mx-auto mb-3" style="width: 80px; height: 80px; background: rgba(255, 0, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--customer-accent);">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h5>{{ user.get_full_name|default:user.username }}</h5>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-envelope me-1"></i> {{ user.email }}
+                        </p>
+                        <p class="text-muted">
+                            <i class="fas fa-phone me-1"></i> {{ user.phone }}
+                        </p>
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-secondary">
+                            <span>Member Since</span>
+                            <strong>{{ user.date_joined|date:"M Y" }}</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-secondary">
+                            <span>Account Type</span>
+                            <strong class="text-magenta">Customer</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-secondary">
+                            <span>Email Verified</span>
+                            <strong class="{% if user.is_email_verified %}text-success{% else %}text-warning{% endif %}">
+                                {% if user.is_email_verified %}Yes{% else %}No{% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'customer_profile' %}" class="btn btn-magenta w-100">
+                            <i class="fas fa-edit me-1"></i> Edit Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card me-2 text-magenta"></i> Payment Method
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary rounded p-2 me-3">
+                            <i class="fas fa-mobile-alt fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">MTN Momo</h6>
+                            <p class="text-muted mb-0">Default payment method</p>
+                        </div>
+                    </div>
+                    
+                    {% if customer_profile.default_momo_number %}
+                    <div class="alert alert-dark">
+                        <p class="mb-1"><strong>Your Momo Number:</strong></p>
+                        <h4 class="text-magenta mb-0">{{ customer_profile.default_momo_number }}</h4>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-center">
+                        <a href="#" class="btn btn-outline-magenta btn-sm">
+                            <i class="fas fa-edit me-1"></i> Update Payment
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Support Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-headset me-2 text-magenta"></i> Need Help?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Our support team is here to help you with any questions or issues.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'contact' %}" class="btn btn-outline-magenta">
+                            <i class="fas fa-envelope me-1"></i> Contact Support
+                        </a>
+                        <a href="#" class="btn btn-outline-magenta">
+                            <i class="fas fa-question-circle me-1"></i> FAQ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

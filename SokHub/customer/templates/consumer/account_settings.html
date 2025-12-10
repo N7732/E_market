@@ -1,0 +1,351 @@
+<!-- templates/customer/account_settings.html -->
+{% extends "base.html" %}
+
+{% block title %}Account Settings - SokHub{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-3">
+            <!-- Settings Sidebar -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="text-magenta mb-4">
+                        <i class="fas fa-cog me-2"></i> Settings
+                    </h5>
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'profile' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i> Profile
+                        </a>
+                        <a href="{% url 'account_settings' %}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-sliders-h me-2"></i> Account Settings
+                        </a>
+                        <a href="{% url 'password_change' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-key me-2"></i> Password & Security
+                        </a>
+                        {% if user.user_type == 'vendor' %}
+                        <a href="{% url 'vendor_profile' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-store me-2"></i> Business Settings
+                        </a>
+                        {% endif %}
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i> Notifications
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shield-alt me-2"></i> Privacy
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Status -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">Account Status</h6>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success rounded-circle me-3" 
+                             style="width: 12px; height: 12px;"></div>
+                        <div>
+                            <p class="mb-0"><strong>Status:</strong> Active</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-info rounded-circle me-3" 
+                             style="width: 12px; height: 12px;"></div>
+                        <div>
+                            <p class="mb-0"><strong>Type:</strong> {{ user.get_user_type_display }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-9">
+            <!-- Account Settings Form -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-black text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-cog me-2"></i> Account Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Email Preferences -->
+                        <h5 class="mb-4 text-magenta">
+                            <i class="fas fa-envelope me-2"></i> Email Preferences
+                        </h5>
+                        
+                        {% if user.user_type == 'customer' and user.customerprofile %}
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="receive_promotions" id="receive_promotions"
+                                           {% if user.customerprofile.receive_promotions %}checked{% endif %}>
+                                    <label class="form-check-label" for="receive_promotions">
+                                        Receive promotional emails
+                                    </label>
+                                    <div class="form-text">
+                                        Get updates about new products, sales, and special offers
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="newsletter_subscription" id="newsletter_subscription"
+                                           {% if user.customerprofile.newsletter_subscription %}checked{% endif %}>
+                                    <label class="form-check-label" for="newsletter_subscription">
+                                        Subscribe to newsletter
+                                    </label>
+                                    <div class="form-text">
+                                        Weekly newsletter with market insights
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Notification Settings -->
+                        <h5 class="mb-4 text-magenta">
+                            <i class="fas fa-bell me-2"></i> Notification Settings
+                        </h5>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="order_notifications" checked>
+                                    <label class="form-check-label" for="order_notifications">
+                                        Order notifications
+                                    </label>
+                                    <div class="form-text">
+                                        Updates about your orders
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="payment_notifications" checked>
+                                    <label class="form-check-label" for="payment_notifications">
+                                        Payment notifications
+                                    </label>
+                                    <div class="form-text">
+                                        Payment confirmations and receipts
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="security_notifications" checked>
+                                    <label class="form-check-label" for="security_notifications">
+                                        Security notifications
+                                    </label>
+                                    <div class="form-text">
+                                        Login alerts and security updates
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="marketing_notifications">
+                                    <label class="form-check-label" for="marketing_notifications">
+                                        Marketing communications
+                                    </label>
+                                    <div class="form-text">
+                                        Promotional offers and updates
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Privacy Settings -->
+                        <h5 class="mb-4 text-magenta">
+                            <i class="fas fa-shield-alt me-2"></i> Privacy Settings
+                        </h5>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="profile_visibility" checked>
+                                    <label class="form-check-label" for="profile_visibility">
+                                        Profile visibility
+                                    </label>
+                                    <div class="form-text">
+                                        Allow vendors to see your basic profile
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="data_collection">
+                                    <label class="form-check-label" for="data_collection">
+                                        Data collection
+                                    </label>
+                                    <div class="form-text">
+                                        Allow anonymous data collection for improvement
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Danger Zone -->
+                        <h5 class="mb-4 text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Danger Zone
+                        </h5>
+                        
+                        <div class="alert alert-danger">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-circle me-2"></i> Irreversible Actions
+                            </h6>
+                            <p class="mb-3">
+                                These actions cannot be undone. Please proceed with caution.
+                            </p>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm" 
+                                        data-bs-toggle="modal" data-bs-target="#deactivateModal">
+                                    <i class="fas fa-user-slash me-1"></i> Deactivate Account
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm"
+                                        data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                    <i class="fas fa-trash me-1"></i> Delete Account
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'profile' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Profile
+                            </a>
+                            <button type="submit" class="btn btn-magenta">
+                                <i class="fas fa-save me-1"></i> Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Security Settings -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-black text-white">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i> Security Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6>Password</h6>
+                            <p class="text-muted small mb-2">Last changed: 30 days ago</p>
+                            <a href="{% url 'password_change' %}" class="btn btn-outline-magenta btn-sm">
+                                <i class="fas fa-key me-1"></i> Change Password
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6>Two-Factor Authentication</h6>
+                            <p class="text-muted small mb-2">Add an extra layer of security</p>
+                            <button class="btn btn-outline-magenta btn-sm" disabled>
+                                <i class="fas fa-mobile-alt me-1"></i> Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Recent Login Activity</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <strong>Current Session</strong>
+                                        <p class="mb-0 small text-muted">Chrome on Windows • Just now</p>
+                                    </div>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            </div>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <strong>Mobile Device</strong>
+                                        <p class="mb-0 small text-muted">Safari on iPhone • 2 days ago</p>
+                                    </div>
+                                    <span class="badge bg-secondary">Inactive</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deactivate Account Modal -->
+<div class="modal fade" id="deactivateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Deactivate Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to deactivate your account?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Your account will be temporarily disabled. You can reactivate it by logging in again.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger">Deactivate Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-trash me-2"></i> Delete Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold">This action cannot be undone!</p>
+                <p>All your data including orders, profile information, and preferences will be permanently deleted.</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This will permanently remove your account from SokHub.
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmDelete">
+                    <label class="form-check-label" for="confirmDelete">
+                        I understand this action is irreversible
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="deleteAccountBtn" disabled>
+                    Permanently Delete Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle delete button based on confirmation
+    const confirmCheckbox = document.getElementById('confirmDelete');
+    const deleteButton = document.getElementById('deleteAccountBtn');
+    
+    if (confirmCheckbox && deleteButton) {
+        confirmCheckbox.addEventListener('change', function() {
+            deleteButton.disabled = !this.checked;
+        });
+    }
+});
+</script>
+{% endblock %}

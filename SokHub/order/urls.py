@@ -1,0 +1,35 @@
+# orders/urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    # Cart URLs
+    path('cart/', views.cart_view, name='cart'),
+    path('cart/add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
+    path('cart/update/<int:item_id>/', views.update_cart_item, name='update_cart_item'),
+    path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('cart/clear/', views.clear_cart, name='clear_cart'),
+    
+    # Checkout URLs
+    path('checkout/', views.checkout_view, name='checkout'),
+    path('confirmation/<str:order_number>/', views.order_confirmation, name='order_confirmation'),
+    
+    # Customer Order URLs
+    path('customer/orders/', views.customer_order_list, name='customer_order_list'),
+    path('customer/orders/<str:order_number>/', views.customer_order_detail, name='customer_order_detail'),
+    path('customer/orders/<str:order_number>/delete/', views.request_order_deletion, name='request_order_deletion'),
+    path('customer/orders/<str:order_number>/payment/', views.confirm_payment, name='confirm_payment'),
+    path('customer/orders/<str:order_number>/invoice/', views.download_invoice, name='download_invoice'),
+    
+    # Vendor Order URLs
+    path('vendor/orders/', views.vendor_order_list, name='vendor_order_list'),
+    path('vendor/orders/<str:order_number>/', views.vendor_order_detail, name='vendor_order_detail'),
+    path('vendor/orders/<str:order_number>/delete/approve/', views.approve_order_deletion, name='approve_order_deletion'),
+    path('vendor/orders/<str:order_number>/delete/reject/', views.reject_order_deletion, name='reject_order_deletion'),
+    path('vendor/orders/bulk-update/', views.bulk_update_orders, name='bulk_update_orders'),
+    
+    # API/Utility URLs
+    path('api/cart-count/', views.get_cart_count, name='get_cart_count'),
+    path('api/notifications/', views.get_unread_notifications, name='get_unread_notifications'),
+    path('api/notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
+]

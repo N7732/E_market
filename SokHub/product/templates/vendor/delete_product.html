@@ -1,0 +1,28 @@
+<!-- templates/products/vendor/delete_product.html -->
+{% extends "base.html" %}
+
+{% block title %}Delete {{ product.name }} - SokHub{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Warning Card -->
+            <div class="card border-danger shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i> Delete Product
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <!-- Product Info -->
+                    <div class="mb-4">
+                        {% if product.main_image %}
+                            <img src="{{ product.main_image.url }}" 
+                                 alt="{{ product.name }}" 
+                                 class="img-fluid rounded mb-3" 
+                                 style="max-height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center mx-auto mb-3" 
+                                 style="height: 200px; width: 200px;">
+                                <i class="fas fa-image fa-3x text-m

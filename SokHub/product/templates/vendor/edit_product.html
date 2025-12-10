@@ -1,0 +1,247 @@
+<!-- templates/products/vendor/edit_product.html -->
+{% extends "base.html" %}
+
+{% block title %}Edit {{ product.name }} - SokHub{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Page Header -->
+            <div class="mb-5">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'vendor_dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'vendor_product_list' %}">Products</a></li>
+                        <li class="breadcrumb-item active">Edit Product</li>
+                    </ol>
+                </nav>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="display-5 fw-bold">
+                            <i class="fas fa-edit me-2 text-success"></i> Edit Product
+                        </h1>
+                        <p class="lead text-muted mb-0">{{ product.name }}</p>
+                    </div>
+                    <div>
+                        <span class="badge bg-{% if product.status == 'active' %}success{% elif product.status == 'draft' %}secondary{% elif product.status == 'out_of_stock' %}danger{% else %}warning{% endif %}">
+                            {{ product.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            {% if product.main_image %}
+                                <img src="{{ product.main_image.url }}" 
+                                     alt="{{ product.name }}" 
+                                     class="img-fluid rounded" 
+                                     style="height: 150px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="height: 150px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Price</small>
+                                    <h5 class="fw-bold">{{ product.price }} RWF</h5>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Stock</small>
+                                    <h5 class="fw-bold">
+                                        {% if product.is_track_inventory %}
+                                            {{ product.get_available_quantity }}
+                                        {% else %}
+                                            Unlimited
+                                        {% endif %}
+                                    </h5>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Sales</small>
+                                    <h5 class="fw-bold">{{ product.purchase_count }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Form -->
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-4 border-bottom pb-2">
+                                    <i class="fas fa-info-circle me-2 text-success"></i> Basic Information
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label fw-bold">Product Name *</label>
+                                {{ form.name }}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Category</label>
+                                {{ form.category }}
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Short Description</label>
+                                {{ form.short_description }}
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Full Description *</label>
+                                {{ form.description }}
+                            </div>
+                        </div>
+                        
+                        <!-- Pricing -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-4 border-bottom pb-2">
+                                    <i class="fas fa-tag me-2 text-success"></i> Pricing
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Price (RWF) *</label>
+                                {{ form.price }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Compare at Price (RWF)</label>
+                                {{ form.compare_at_price }}
+                            </div>
+                        </div>
+                        
+                        <!-- Inventory -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-4 border-bottom pb-2">
+                                    <i class="fas fa-boxes me-2 text-success"></i> Inventory
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="form-check form-switch">
+                                    {{ form.is_track_inventory }}
+                                    <label class="form-check-label fw-bold">
+                                        Track Inventory
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="form-check form-switch">
+                                    {{ form.allow_backorder }}
+                                    <label class="form-check-label fw-bold">
+                                        Allow Backorder
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="form-check form-switch">
+                                    {{ form.requires_shipping }}
+                                    <label class="form-check-label fw-bold">
+                                        Requires Shipping
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Quantity</label>
+                                {{ form.quantity }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Low Stock Alert</label>
+                                {{ form.low_stock_threshold }}
+                            </div>
+                        </div>
+                        
+                        <!-- Images -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-4 border-bottom pb-2">
+                                    <i class="fas fa-images me-2 text-success"></i> Images
+                                </h5>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Main Product Image</label>
+                                <div class="input-group">
+                                    {{ form.main_image }}
+                                </div>
+                                {% if product.main_image %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Current image:</small>
+                                    <img src="{{ product.main_image.url }}" 
+                                         alt="{{ product.name }}" 
+                                         class="img-thumbnail mt-1" 
+                                         style="height: 100px;">
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between mt-5">
+                            <div>
+                                <a href="{% url 'vendor_product_list' %}" class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-times me-2"></i> Cancel
+                                </a>
+                                <a href="{% url 'vendor_stock_management' product.pk %}" class="btn btn-outline-warning">
+                                    <i class="fas fa-box me-2"></i> Manage Stock
+                                </a>
+                            </div>
+                            <div>
+                                <button type="submit" name="save_draft" class="btn btn-outline-success me-2">
+                                    <i class="fas fa-save me-2"></i> Save Draft
+                                </button>
+                                <button type="submit" name="update_product" class="btn btn-success">
+                                    <i class="fas fa-check me-2"></i> Update Product
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Danger Zone -->
+            <div class="card border-danger shadow-sm mt-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i> Danger Zone
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        Once you delete a product, there is no going back. Please be certain.
+                    </p>
+                    <a href="{% url 'vendor_delete_product' product.pk %}" 
+                       class="btn btn-danger"
+                       onclick="return confirm('Are you sure you want to delete this product? This action cannot be undone.')">
+                        <i class="fas fa-trash me-2"></i> Delete This Product
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
