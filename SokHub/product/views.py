@@ -2,7 +2,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Count, Avg, F
+from django.db.models import Q, Count, Avg, F,Sum
 from django.core.paginator import Paginator
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.db import transaction
 from django.views.decorators.http import require_POST
 import json
+
 
 from customer.Decorator import vendor_required, customer_required
 from .models import Product, Category, ProductReview, StockHistory
@@ -138,7 +139,11 @@ class ProductDetailView(DetailView):
                          self.request.user.user_type == 'customer' and
                          not reviews.filter(customer=self.request.user).exists(),
         })
-        
+        return context
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['rating_range'] = range(5, 0, -1)  # [5, 4, 3, 2, 1]
         return context
 
 @login_required
@@ -186,7 +191,7 @@ def vendor_product_list(request):
         'search_query': search_query,
     }
     
-    return render(request, 'products/vendor_product_list.html', context)
+    return render(request, 'vendor/product_list.html', context)
 
 @login_required
 @vendor_required
@@ -195,6 +200,10 @@ def vendor_add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES, vendor=request.user)
         if form.is_valid():
+            # category_name = form.cleaned_data["category"]
+            # category, created = Category.objects.get_or_create(name=category_name)
+            # product = form.save(commit=False)
+            # product.category = category
             product = form.save()
             messages.success(request, f'Product "{product.name}" added successfully! It will be reviewed before going live.')
             return redirect('vendor_product_list')
@@ -218,7 +227,7 @@ def vendor_edit_product(request, pk):
     else:
         form = ProductForm(instance=product, vendor=request.user)
     
-    return render(request, 'products/vendor_edit_product.html', {'form': form, 'product': product})
+    return render(request, 'vendor/edit_product.html', {'form': form, 'product': product})
 
 @login_required
 @vendor_required
@@ -232,7 +241,7 @@ def vendor_delete_product(request, pk):
         messages.success(request, f'Product "{product_name}" deleted successfully!')
         return redirect('vendor_product_list')
     
-    return render(request, 'products/vendor_delete_product.html', {'product': product})
+    return render(request, 'vendor/delete_product.html', {'product': product})
 
 @login_required
 @vendor_required
@@ -292,7 +301,7 @@ def vendor_stock_management(request, pk):
         'stock_history': stock_history,
     }
     
-    return render(request, 'products/vendor_stock_management.html', context)
+    return render(request, 'vendor/stock_management.html', context)
 
 @login_required
 @customer_required
@@ -412,3 +421,20 @@ def reserve_stock(request, pk):
             'error': 'Not enough stock available',
             'available': product.get_available_quantity()
         })
+
+def vendor_analytics(request):
+    """Vendor analytics dashboard"""
+    if not request.user.is_authenticated or request.user.user_type != 'vendor':
+        return HttpResponseForbidden("You do not have permission to access this page.")
+    # Aggregate sales data
+    total_sales = Product.objects.filter(vendor=request.user).aggregate(
+        total_revenue=Sum(F('price') * F('purchase_count')),
+        total_orders=Sum('purchase_count'),
+        average_rating=Avg('average_rating')
+    )
+    top_selling_products = Product.objects.filter(vendor=request.user).order_by('-purchase_count')[:5]
+    context = {
+        'total_sales': total_sales,
+        'top_selling_products': top_selling_products,
+    }
+    return render(request, 'vendor/analytics.html', context)

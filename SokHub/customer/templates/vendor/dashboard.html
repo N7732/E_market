@@ -16,6 +16,7 @@
     
     body {
         background-color: var(--vendor-light);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
     .navbar, footer {
@@ -96,6 +97,7 @@
         text-align: center;
         transition: all 0.3s;
         border: 2px solid transparent;
+        cursor: pointer;
     }
     
     .quick-action-card:hover {
@@ -108,6 +110,54 @@
         border-radius: 12px;
         padding: 25px;
         margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Typography improvements */
+    h1, h2, h3, h4, h5, h6 {
+        font-weight: 600;
+        line-height: 1.3;
+    }
+    
+    .lead {
+        font-size: 1.1rem;
+        font-weight: 400;
+        line-height: 1.6;
+    }
+    
+    .small, small {
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+    
+    .text-muted {
+        color: #6c757d !important;
+    }
+    
+    /* Button improvements */
+    .btn {
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-outline-success:hover {
+        background-color: var(--vendor-success);
+        color: white;
+    }
+    
+    /* Badge improvements */
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+        border-radius: 6px;
     }
 </style>
 {% endblock %}
@@ -115,14 +165,14 @@
 {% block content %}
 <div class="container-fluid py-4">
     <!-- Dashboard Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="display-6 fw-bold">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <div class="mb-3 mb-md-0">
+            <h1 class="display-6 fw-bold mb-2">
                 <i class="fas fa-store me-2 text-success"></i>
                 {{ vendor.business_name }}
-                <span class="badge bg-success ms-2">Vendor Dashboard</span>
+                <span class="badge bg-success ms-2 fs-6">Vendor Dashboard</span>
             </h1>
-            <p class="text-muted mb-0">
+            <p class="text-muted mb-0 lead">
                 <i class="fas fa-calendar-alt me-1"></i>
                 Today: {% now "F d, Y" %}
                 {% if vendor.is_approved %}
@@ -132,8 +182,11 @@
                 {% endif %}
             </p>
         </div>
-        <div>
-            <a href="{%url 'vendor_add_product'%}" class="btn btn-success">
+        <div class="d-flex gap-2">
+            <a href="{% url 'vendor_product_list' %}" class="btn btn-outline-success">
+                <i class="fas fa-list me-2"></i> View Product List
+            </a>
+            <a href="{% url 'vendor_add_product' %}" class="btn btn-success">
                 <i class="fas fa-plus-circle me-2"></i> Add Product
             </a>
         </div>
@@ -203,7 +256,9 @@
                     <h5 class="mb-0">
                         <i class="fas fa-history me-2 text-success"></i> Recent Orders
                     </h5>
-                    <a href="#" class="btn btn-outline-success btn-sm">View All</a>
+                    <a href="{% url 'vendor_order_list' %}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-eye me-1"></i> View All Orders
+                    </a>
                 </div>
                 
                 {% if recent_orders %}
@@ -229,10 +284,10 @@
                                 </span>
                             </div>
                             <div class="col-md-3 text-end">
-                                <a href="#" class="btn btn-sm btn-outline-success me-2">
+                                <a href="{% url 'vendor_order_detail' order.id %}" class="btn btn-sm btn-outline-success me-2">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="#" class="btn btn-sm btn-success">
+                                <a href="{% url 'vendor_update_order' order.id %}" class="btn btn-sm btn-success">
                                     <i class="fas fa-edit"></i>
                                 </a>
                             </div>
@@ -255,32 +310,40 @@
                 </h5>
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <div class="quick-action-card">
-                            <i class="fas fa-plus-circle fa-2x text-success mb-3"></i>
-                            <h6>Add Product</h6>
-                            <p class="small text-muted mb-0">List new item for sale</p>
-                        </div>
+                        <a href="{% url 'vendor_add_product' %}" class="text-decoration-none">
+                            <div class="quick-action-card">
+                                <i class="fas fa-plus-circle fa-2x text-success mb-3"></i>
+                                <h6 class="fw-semibold">Add Product</h6>
+                                <p class="small text-muted mb-0">List new item for sale</p>
+                            </div>
+                        </a>
                     </div>
                     <div class="col-md-3">
-                        <div class="quick-action-card">
-                            <i class="fas fa-edit fa-2x text-success mb-3"></i>
-                            <h6>Manage Inventory</h6>
-                            <p class="small text-muted mb-0">Update stock levels</p>
-                        </div>
+                        <a href="{% url 'vendor_add_product' %}" class="text-decoration-none">
+                            <div class="quick-action-card">
+                                <i class="fas fa-edit fa-2x text-success mb-3"></i>
+                                <h6 class="fw-semibold">Manage Inventory</h6>
+                                <p class="small text-muted mb-0">Update stock levels</p>
+                            </div>
+                        </a>
                     </div>
                     <div class="col-md-3">
-                        <div class="quick-action-card">
-                            <i class="fas fa-chart-bar fa-2x text-success mb-3"></i>
-                            <h6>View Analytics</h6>
-                            <p class="small text-muted mb-0">Sales reports & insights</p>
-                        </div>
+                        <a href="{% url 'vendor_analytics' %}" class="text-decoration-none">
+                            <div class="quick-action-card">
+                                <i class="fas fa-chart-bar fa-2x text-success mb-3"></i>
+                                <h6 class="fw-semibold">View Analytics</h6>
+                                <p class="small text-muted mb-0">Sales reports & insights</p>
+                            </div>
+                        </a>
                     </div>
                     <div class="col-md-3">
-                        <div class="quick-action-card">
-                            <i class="fas fa-file-pdf fa-2x text-success mb-3"></i>
-                            <h6>Generate Reports</h6>
-                            <p class="small text-muted mb-0">Export sales data</p>
-                        </div>
+                        <a href="{% url 'vendor_reports' %}" class="text-decoration-none">
+                            <div class="quick-action-card">
+                                <i class="fas fa-file-pdf fa-2x text-success mb-3"></i>
+                                <h6 class="fw-semibold">Generate Reports</h6>
+                                <p class="small text-muted mb-0">Export sales data</p>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -297,7 +360,7 @@
                     <small class="text-muted">MOMO PAYMENT NUMBER</small>
                     <h4 class="text-success">{{ vendor.get_momo_number }}</h4>
                     {% if vendor.admin_override_momo %}
-                    <div class="alert alert-warning small py-2">
+                    <div class="alert alert-warning small py-2 mb-3">
                         <i class="fas fa-info-circle me-1"></i>
                         Using admin override number
                     </div>
@@ -305,9 +368,9 @@
                 </div>
                 
                 <div class="list-group list-group-flush">
-                    <div class="list-group-item px-0">
+                    <div class="list-group-item px-0 pt-0">
                         <small class="text-muted">BUSINESS RATING</small>
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center mt-1">
                             <div class="rating-stars me-2">
                                 {% for i in "12345"|make_list %}
                                     {% if forloop.counter <= vendor.rating %}
@@ -322,11 +385,11 @@
                     </div>
                     <div class="list-group-item px-0">
                         <small class="text-muted">TOTAL SALES</small>
-                        <h6 class="mb-0">{{ vendor.total_sales }} orders</h6>
+                        <h6 class="mb-0 fw-bold">{{ vendor.total_sales }} orders</h6>
                     </div>
-                    <div class="list-group-item px-0">
+                    <div class="list-group-item px-0 pb-0">
                         <small class="text-muted">ACCOUNT STATUS</small>
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center mt-1">
                             <span>
                                 {% if vendor.is_active %}
                                     <span class="badge bg-success">Active</span>
@@ -335,7 +398,7 @@
                                 {% endif %}
                             </span>
                             <a href="{% url 'vendor_profile' %}" class="text-success small">
-                                <i class="fas fa-edit me-1"></i> Edit
+                                <i class="fas fa-edit me-1"></i> Edit Profile
                             </a>
                         </div>
                     </div>
@@ -351,14 +414,22 @@
                     {% for item in low_stock_items %}
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div>
-                            <p class="mb-0">{{ item.product.name }}</p>
-                            <small class="text-danger">Only {{ item.stock }} left</small>
+                            <p class="mb-0 fw-medium">{{ item.product.name|truncatechars:30 }}</p>
+                            <small class="text-danger">
+                                <i class="fas fa-box me-1"></i>Only {{ item.stock }} left
+                            </small>
                         </div>
-                        <a href="#" class="btn btn-sm btn-outline-danger">Restock</a>
+                        <a href="{% url 'vendor_update_product' item.product.id %}" class="btn btn-sm btn-outline-danger">
+                            Restock
+                        </a>
                     </div>
+                    {% if not forloop.last %}<hr class="my-2">{% endif %}
                     {% endfor %}
                 {% else %}
-                    <p class="text-muted mb-0">All products have sufficient stock</p>
+                    <div class="text-center py-3">
+                        <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                        <p class="text-muted mb-0">All products have sufficient stock</p>
+                    </div>
                 {% endif %}
             </div>
             

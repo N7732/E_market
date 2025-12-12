@@ -3,11 +3,22 @@ from django import forms
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 from .models import Product, ProductImage, ProductVariant, Category, ProductReview
+import json
+import os
+from django.conf import settings
+
+# def load_categories():
+#     json_path = os.path.join(settings.BASE_DIR, "your_app","fixtures","categories.json")
+#     with open(json_path, "r") as file:
+#         data = json.load(file)
+#         return [(cat, cat) for cat in data["categories"]]
+    
 
 class ProductForm(forms.ModelForm):
     """Form for vendors to add/edit products"""
     class Meta:
         model = Product
+        #category = forms.ChoiceField(choices=load_categories())
         fields = [
             'name', 'description', 'short_description', 'price', 
             'compare_at_price', 'category', 'tags', 'quantity',
@@ -19,6 +30,7 @@ class ProductForm(forms.ModelForm):
             'short_description': forms.Textarea(attrs={'rows': 2}),
             'category': forms.Select(attrs={'class': 'form-control'}),
             'tags': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'main_image': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -87,6 +99,7 @@ class ProductImageForm(forms.ModelForm):
             'alt_text': forms.TextInput(attrs={'class': 'form-control'}),
             'display_order': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_main': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
         }
 
 class ProductVariantForm(forms.ModelForm):

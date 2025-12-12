@@ -1,5 +1,6 @@
 # orders/views.py
 from decimal import Decimal
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -21,6 +22,7 @@ from .form import (
     OrderDeletionRequestForm, OrderPaymentForm, 
     OrderFilterForm, VendorOrderFilterForm, BulkOrderUpdateForm
 )
+from django.db.models.functions import TruncMonth
 
 # ==================== CART VIEWS ====================
 
@@ -423,6 +425,56 @@ def vendor_order_detail(request, order_number):
     }
     
     return render(request, 'orders/vendor/order_detail.html', context)
+
+def vendor_report(request):
+    """Vendor sales report view"""
+    if not request.user.is_authenticated or request.user.user_type != 'vendor':
+        messages.error(request, "You must be logged in as a vendor to access this page.")
+        return redirect('login')
+    
+    # Get sales data aggregated by product
+    sales_data = list(OrderItem.objects.filter(
+        vendor=request.user,
+        order__status='delivered'
+    ).values('product__name').annotate(
+        total_quantity=Sum('quantity'),
+        total_revenue=Sum('total_price')
+    ).order_by('-total_revenue'))
+    
+    # Calculate total revenue for percentage calculations
+    total_revenue = sum(item['total_revenue'] for item in sales_data if item['total_revenue'])
+    
+    # Add percentage to each item for progress bars
+    for item in sales_data:
+        if total_revenue > 0 and item['total_revenue']:
+            item['percentage'] = round((item['total_revenue'] / total_revenue) * 100, 1)
+        else:
+            item['percentage'] = 0
+    
+    # Get monthly trend data for chart
+    monthly_trend = OrderItem.objects.filter(
+        vendor=request.user,
+        order__status='delivered'
+    ).annotate(
+        month=TruncMonth('order__created_at')
+    ).values('month').annotate(
+        monthly_revenue=Sum('total_price'),
+        order_count=Count('id')
+    ).order_by('month')
+    
+    context = {
+        'sales_data': json.dumps(sales_data) if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else sales_data,
+        'monthly_trend': list(monthly_trend),
+        'total_revenue': total_revenue,
+        'total_products': len(sales_data),
+        'total_units': sum(item['total_quantity'] for item in sales_data if item['total_quantity']),
+        'avg_revenue_per_product': total_revenue / len(sales_data) if sales_data else 0,
+    }
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse(context)
+    
+    return render(request, 'vendor/sale_reports.html', context)
 
 # ==================== ORDER ACTIONS ====================
 

@@ -1,0 +1,836 @@
+<!-- templates/vendor/sales_report.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sales Report - SokHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --report-primary: #28a745;
+        --report-secondary: #17a2b8;
+        --report-warning: #ffc107;
+        --report-danger: #dc3545;
+        --report-purple: #6f42c1;
+        --report-dark: #343a40;
+        --report-light: #f8f9fa;
+        --report-success-light: #d4edda;
+        --report-info-light: #d1ecf1;
+        --report-warning-light: #fff3cd;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    
+    .report-header {
+        background: linear-gradient(90deg, var(--report-dark) 0%, #006400 100%);
+        color: white;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        padding: 30px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        animation: fadeInDown 0.8s ease-out;
+    }
+    
+    .report-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(40, 167, 69, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(100px, -100px);
+    }
+    
+    .filter-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    .summary-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .summary-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+    }
+    
+    .summary-total::after { background: linear-gradient(90deg, var(--report-primary), #20c997); }
+    .summary-avg::after { background: linear-gradient(90deg, var(--report-secondary), #0dcaf0); }
+    .summary-count::after { background: linear-gradient(90deg, var(--report-purple), #9d6fdc); }
+    
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        animation: fadeIn 0.8s ease-out;
+    }
+    
+    .sales-table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 0;
+        margin-bottom: 25px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    
+    .sales-table {
+        margin-bottom: 0;
+    }
+    
+    .sales-table thead {
+        background: linear-gradient(90deg, var(--report-dark), #006400);
+        color: white;
+    }
+    
+    .sales-table thead th {
+        border: none;
+        padding: 15px 20px;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    
+    .sales-table tbody tr {
+        transition: all 0.2s;
+    }
+    
+    .sales-table tbody tr:hover {
+        background-color: rgba(40, 167, 69, 0.05);
+        transform: scale(1.002);
+    }
+    
+    .sales-table tbody td {
+        padding: 15px 20px;
+        vertical-align: middle;
+        border-color: #eee;
+    }
+    
+    .product-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-right: 8px;
+        margin-bottom: 5px;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-left: 10px;
+    }
+    
+    .trend-up {
+        background-color: var(--report-success-light);
+        color: var(--report-primary);
+    }
+    
+    .trend-down {
+        background-color: #f8d7da;
+        color: var(--report-danger);
+    }
+    
+    .animated-number {
+        font-size: 2.2rem;
+        font-weight: 700;
+        line-height: 1;
+        background: linear-gradient(90deg, var(--report-dark), #495057);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .revenue-bar {
+        height: 8px;
+        border-radius: 4px;
+        background-color: #e9ecef;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+    
+    .revenue-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--report-primary), #20c997);
+        border-radius: 4px;
+        transition: width 1s ease-out;
+    }
+    
+    .pagination-container {
+        background: white;
+        border-radius: 15px;
+        padding: 15px 25px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .no-data-message {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .no-data-message i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes progressBar {
+        from { width: 0%; }
+        to { width: var(--target-width); }
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        z-index: 10;
+    }
+    
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--report-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="report-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="fas fa-chart-line me-3"></i>Sales Performance Report
+                </h1>
+                <p class="lead mb-0 opacity-75">
+                    Detailed sales analytics and revenue insights for your products
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="export-buttons">
+                    <button class="btn btn-outline-light" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf me-2"></i>PDF
+                    </button>
+                    <button class="btn btn-outline-light" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel me-2"></i>Excel
+                    </button>
+                    <button class="btn btn-outline-light" onclick="printReport()">
+                        <i class="fas fa-print me-2"></i>Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6">
+            <div class="summary-card summary-total">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-1">TOTAL REVENUE</h6>
+                        <h2 class="animated-number" id="totalRevenue">0 RWF</h2>
+                        <span class="trend-indicator trend-up">
+                            <i class="fas fa-arrow-up me-1"></i> 12.5%
+                        </span>
+                    </div>
+                    <i class="fas fa-money-bill-wave fa-2x text-success opacity-25"></i>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Revenue from all delivered orders</p>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="summary-card summary-avg">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-1">AVG. REVENUE PER PRODUCT</h6>
+                        <h2 class="animated-number" id="avgRevenue">0 RWF</h2>
+                        <span class="trend-indicator trend-up">
+                            <i class="fas fa-arrow-up me-1"></i> 8.3%
+                        </span>
+                    </div>
+                    <i class="fas fa-chart-bar fa-2x text-info opacity-25"></i>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Average revenue across all products</p>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="summary-card summary-count">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-1">PRODUCTS SOLD</h6>
+                        <h2 class="animated-number" id="totalProducts">0</h2>
+                        <span class="trend-indicator trend-up">
+                            <i class="fas fa-arrow-up me-1"></i> 15.2%
+                        </span>
+                    </div>
+                    <i class="fas fa-box fa-2x text-purple opacity-25"></i>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Total number of products with sales</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Section -->
+    <div class="filter-card">
+        <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Report Filters</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Date Range</label>
+                <select class="form-select" id="dateRange">
+                    <option value="all">All Time</option>
+                    <option value="30d" selected>Last 30 Days</option>
+                    <option value="90d">Last 90 Days</option>
+                    <option value="1y">Last Year</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Sort By</label>
+                <select class="form-select" id="sortBy">
+                    <option value="revenue" selected>Highest Revenue</option>
+                    <option value="quantity">Highest Quantity</option>
+                    <option value="name">Product Name</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Product Category</label>
+                <select class="form-select" id="productCategory">
+                    <option value="all">All Categories</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="fashion">Fashion</option>
+                    <option value="home">Home & Garden</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-success w-100" onclick="applyFilters()">
+                    <i class="fas fa-sync-alt me-2"></i>Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Left Column: Charts -->
+        <div class="col-lg-7">
+            <!-- Revenue Distribution Chart -->
+            <div class="chart-container">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2 text-success"></i> Revenue Distribution
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm active" data-chart-type="pie">
+                            <i class="fas fa-chart-pie"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" data-chart-type="bar">
+                            <i class="fas fa-chart-bar"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="position-relative" style="height: 320px;">
+                    <canvas id="revenueChart"></canvas>
+                    <div class="loading-overlay d-none" id="chartLoading">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sales Trend Chart -->
+            <div class="chart-container">
+                <h5 class="mb-4">
+                    <i class="fas fa-chart-line me-2 text-info"></i> Sales Trend
+                </h5>
+                <canvas id="trendChart" height="250"></canvas>
+            </div>
+        </div>
+        
+        <!-- Right Column: Data Table -->
+        <div class="col-lg-5">
+            <div class="sales-table-container">
+                <div class="p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2"></i> Sales Breakdown
+                        </h5>
+                        <span class="badge bg-success rounded-pill">
+                            {{ sales_data|length }} Products
+                        </span>
+                    </div>
+                </div>
+                
+                {% if sales_data %}
+                <div class="table-responsive">
+                    <table class="table sales-table">
+                        <thead>
+                            <tr>
+                                <th width="40%">Product</th>
+                                <th width="20%" class="text-center">Quantity</th>
+                                <th width="40%" class="text-end">Revenue (RWF)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in sales_data %}
+                            <tr>
+                                <td>
+                                    <div class="fw-medium">{{ item.product__name|default:"Unknown Product" }}</div>
+                                    <div class="revenue-bar">
+                                        <div class="revenue-fill" 
+                                             style="--target-width: {{ item.percentage|default:'0' }}%; 
+                                                    width: {{ item.percentage|default:'0' }}%;"
+                                             data-width="{{ item.percentage|default:'0' }}">
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center fw-bold">
+                                    {{ item.total_quantity }}
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold text-success">
+                                        {{ item.total_revenue|default:0|floatformat:0 }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="no-data-message">
+                    <i class="fas fa-chart-bar"></i>
+                    <h4 class="text-muted mb-3">No Sales Data Available</h4>
+                    <p class="text-muted">Start selling products to see your sales report here.</p>
+                    <a href="{% url 'vendor_add_product' %}" class="btn btn-success mt-2">
+                        <i class="fas fa-plus-circle me-2"></i>Add Products
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Summary Stats -->
+            <div class="chart-container">
+                <h5 class="mb-4">
+                    <i class="fas fa-chart-bar me-2 text-warning"></i> Performance Summary
+                </h5>
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-success mb-1" id="topProductRevenue">0</h3>
+                            <small class="text-muted">Top Product Revenue</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-info mb-1" id="avgProductRevenue">0</h3>
+                            <small class="text-muted">Avg. Product Revenue</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-purple mb-1" id="totalUnitsSold">0</h3>
+                            <small class="text-muted">Total Units Sold</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination (if needed) -->
+    {% if sales_data and sales_data|length > 10 %}
+    <div class="pagination-container">
+        <nav aria-label="Sales report pagination">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                </li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item">
+                    <a class="page-link" href="#">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+// Global variables
+let revenueChart, trendChart;
+let salesData = {{ sales_data|safe }};
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    updateSummaryStats();
+    animateNumbers();
+    
+    // Add percentage to sales data for progress bars
+    if (salesData && salesData.length > 0) {
+        const maxRevenue = Math.max(...salesData.map(item => item.total_revenue || 0));
+        salesData.forEach(item => {
+            item.percentage = maxRevenue > 0 ? (item.total_revenue / maxRevenue * 100) : 0;
+        });
+    }
+});
+
+// Initialize charts
+function initializeCharts() {
+    // Revenue Distribution Chart
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    revenueChart = new Chart(revenueCtx, {
+        type: 'pie',
+        data: {
+            labels: salesData.slice(0, 5).map(item => item.product__name || 'Unknown'),
+            datasets: [{
+                data: salesData.slice(0, 5).map(item => item.total_revenue || 0),
+                backgroundColor: [
+                    '#28a745',
+                    '#17a2b8',
+                    '#ffc107',
+                    '#6f42c1',
+                    '#dc3545'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value.toLocaleString()} RWF (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Sales Trend Chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+            datasets: [{
+                label: 'Revenue (RWF)',
+                data: [4500000, 5200000, 4800000, 6100000, 5500000, 6800000, 7200000],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return (value / 1000000).toFixed(1) + 'M RWF';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Chart type switcher
+    document.querySelectorAll('[data-chart-type]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('[data-chart-type]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            revenueChart.config.type = this.dataset.chartType;
+            revenueChart.update();
+        });
+    });
+}
+
+// Update summary statistics
+function updateSummaryStats() {
+    if (!salesData || salesData.length === 0) return;
+    
+    const totalRevenue = salesData.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+    const totalQuantity = salesData.reduce((sum, item) => sum + (item.total_quantity || 0), 0);
+    const avgRevenue = totalRevenue / salesData.length;
+    const topRevenue = Math.max(...salesData.map(item => item.total_revenue || 0));
+    
+    // Update summary cards
+    document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString() + ' RWF';
+    document.getElementById('avgRevenue').textContent = Math.round(avgRevenue).toLocaleString() + ' RWF';
+    document.getElementById('totalProducts').textContent = salesData.length;
+    
+    // Update performance summary
+    document.getElementById('topProductRevenue').textContent = (topRevenue / 1000).toFixed(0) + 'K';
+    document.getElementById('avgProductRevenue').textContent = (avgRevenue / 1000).toFixed(0) + 'K';
+    document.getElementById('totalUnitsSold').textContent = totalQuantity.toLocaleString();
+}
+
+// Animate numbers
+function animateNumbers() {
+    const elements = document.querySelectorAll('.animated-number');
+    elements.forEach(element => {
+        const text = element.textContent;
+        const value = parseInt(text.replace(/[^0-9]/g, ''));
+        const suffix = text.replace(/[0-9]/g, '').trim();
+        
+        if (!isNaN(value)) {
+            element.textContent = '0' + suffix;
+            
+            let start = 0;
+            const duration = 1500;
+            const increment = value / (duration / 16);
+            
+            const timer = setInterval(() => {
+                start += increment;
+                if (start >= value) {
+                    element.textContent = value.toLocaleString() + ' ' + suffix;
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(start).toLocaleString() + ' ' + suffix;
+                }
+            }, 16);
+        }
+    });
+}
+
+// Filter functions
+function applyFilters() {
+    document.getElementById('chartLoading').classList.remove('d-none');
+    
+    // Simulate API call
+    setTimeout(() => {
+        document.getElementById('chartLoading').classList.add('d-none');
+        
+        // Show success message
+        const filterBtn = document.querySelector('.btn-success');
+        const originalText = filterBtn.innerHTML;
+        filterBtn.innerHTML = '<i class="fas fa-check me-2"></i>Filters Applied';
+        filterBtn.classList.add('btn-secondary');
+        
+        setTimeout(() => {
+            filterBtn.innerHTML = originalText;
+            filterBtn.classList.remove('btn-secondary');
+        }, 2000);
+    }, 1000);
+}
+
+// Export functions
+function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.setTextColor(40, 167, 69);
+    doc.text('Sales Report - SokHub', 14, 22);
+    
+    // Add date
+    doc.setFontSize(10);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    // Add summary
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Summary:', 14, 45);
+    
+    const totalRevenue = salesData.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+    const totalQuantity = salesData.reduce((sum, item) => sum + (item.total_quantity || 0), 0);
+    
+    doc.setFontSize(10);
+    doc.text(`Total Revenue: ${totalRevenue.toLocaleString()} RWF`, 20, 55);
+    doc.text(`Total Products: ${salesData.length}`, 20, 62);
+    doc.text(`Total Units Sold: ${totalQuantity}`, 20, 69);
+    
+    // Add table
+    doc.autoTable({
+        startY: 80,
+        head: [['Product', 'Quantity', 'Revenue (RWF)']],
+        body: salesData.map(item => [
+            item.product__name || 'Unknown',
+            item.total_quantity,
+            item.total_revenue ? item.total_revenue.toLocaleString() : '0'
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [40, 167, 69] },
+        margin: { top: 80 }
+    });
+    
+    // Save the PDF
+    doc.save(`sales-report-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+function exportToExcel() {
+    // Create CSV content
+    let csv = 'Product,Quantity,Revenue (RWF)\n';
+    
+    salesData.forEach(item => {
+        csv += `"${item.product__name || 'Unknown'}",${item.total_quantity},${item.total_revenue || 0}\n`;
+    });
+    
+    // Create download link
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sales-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    // Show success message
+    showExportMessage('Excel file downloaded successfully!');
+}
+
+function printReport() {
+    // Show print dialog
+    window.print();
+}
+
+function showExportMessage(message) {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 m-3';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-success text-white">
+                <strong class="me-auto"><i class="fas fa-check-circle me-2"></i>Success</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

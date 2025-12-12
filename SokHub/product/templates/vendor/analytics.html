@@ -1,0 +1,865 @@
+<!-- templates/vendor/analytics.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Analytics Dashboard - SokHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --analytics-primary: #28a745;
+        --analytics-secondary: #17a2b8;
+        --analytics-warning: #ffc107;
+        --analytics-danger: #dc3545;
+        --analytics-purple: #6f42c1;
+        --analytics-dark: #343a40;
+        --analytics-light: #f8f9fa;
+        --analytics-success-light: #d4edda;
+        --analytics-info-light: #d1ecf1;
+        --analytics-warning-light: #fff3cd;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e9 100%);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    
+    .analytics-header {
+        background: linear-gradient(90deg, var(--analytics-dark) 0%, #006400 100%);
+        color: white;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        padding: 30px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        animation: fadeInDown 0.8s ease-out;
+    }
+    
+    .analytics-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(40, 167, 69, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(100px, -100px);
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        position: relative;
+        overflow: hidden;
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+    }
+    
+    .card-revenue::after { background: linear-gradient(90deg, var(--analytics-primary), #20c997); }
+    .card-orders::after { background: linear-gradient(90deg, var(--analytics-secondary), #0dcaf0); }
+    .card-growth::after { background: linear-gradient(90deg, var(--analytics-warning), #ffca2c); }
+    .card-avg::after { background: linear-gradient(90deg, var(--analytics-purple), #9d6fdc); }
+    
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        animation: fadeIn 0.8s ease-out;
+        position: relative;
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--analytics-light);
+    }
+    
+    .chart-title {
+        color: var(--analytics-dark);
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+    
+    .trend-badge {
+        padding: 6px 15px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .trend-up { background-color: var(--analytics-success-light); color: var(--analytics-primary); }
+    .trend-down { background-color: #f8d7da; color: var(--analytics-danger); }
+    .trend-neutral { background-color: var(--analytics-light); color: var(--analytics-dark); }
+    
+    .top-product-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        background: var(--analytics-light);
+        transition: all 0.3s;
+        animation: fadeInRight 0.5s ease-out;
+    }
+    
+    .top-product-item:hover {
+        transform: translateX(5px);
+        background: white;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    }
+    
+    .product-rank {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--analytics-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    
+    .rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+    .rank-2 { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); }
+    .rank-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); }
+    
+    .time-filter {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+    }
+    
+    .time-filter .btn {
+        border-radius: 20px;
+        padding: 8px 20px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .time-filter .btn.active {
+        background-color: var(--analytics-primary);
+        border-color: var(--analytics-primary);
+    }
+    
+    .animated-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+        background: linear-gradient(90deg, var(--analytics-dark), #495057);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .sparkline-container {
+        height: 60px;
+        margin-top: 15px;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes fadeInRight {
+        from {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    /* Progress bar customization */
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        margin-top: 10px;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        border-radius: 4px;
+    }
+    
+    /* Loading animation */
+    .chart-loading {
+        height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--analytics-secondary);
+    }
+    
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--analytics-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="analytics-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="fas fa-chart-line me-3"></i>Analytics Dashboard
+                </h1>
+                <p class="lead mb-0 opacity-75">
+                    Data-driven insights for smarter business decisions. Real-time performance metrics and trend analysis.
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="time-filter justify-content-end">
+                    <button class="btn btn-outline-light active" data-period="7d">7D</button>
+                    <button class="btn btn-outline-light" data-period="30d">30D</button>
+                    <button class="btn btn-outline-light" data-period="90d">90D</button>
+                    <button class="btn btn-outline-light" data-period="1y">1Y</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card-revenue" style="animation-delay: 0.1s">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted mb-1">TOTAL REVENUE</h6>
+                        <h2 class="animated-number" id="totalRevenue">0 RWF</h2>
+                    </div>
+                    <div class="trend-badge trend-up">
+                        <i class="fas fa-arrow-up me-1"></i> 12.5%
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">Total sales from all completed orders</p>
+                <div class="sparkline-container" id="revenueSparkline"></div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card-orders" style="animation-delay: 0.2s">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted mb-1">TOTAL ORDERS</h6>
+                        <h2 class="animated-number" id="totalOrders">0</h2>
+                    </div>
+                    <div class="trend-badge trend-up">
+                        <i class="fas fa-arrow-up me-1"></i> 8.2%
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">Completed orders this period</p>
+                <div class="sparkline-container" id="ordersSparkline"></div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card-growth" style="animation-delay: 0.3s">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted mb-1">GROWTH RATE</h6>
+                        <h2 class="animated-number" id="growthRate">0%</h2>
+                    </div>
+                    <div class="trend-badge trend-up">
+                        <i class="fas fa-chart-line me-1"></i> Growing
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">Revenue growth vs previous period</p>
+                <div class="sparkline-container" id="growthSparkline"></div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card-avg" style="animation-delay: 0.4s">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted mb-1">AVG ORDER VALUE</h6>
+                        <h2 class="animated-number" id="avgOrderValue">0 RWF</h2>
+                    </div>
+                    <div class="trend-badge trend-down">
+                        <i class="fas fa-arrow-down me-1"></i> 3.1%
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">Average revenue per order</p>
+                <div class="sparkline-container" id="avgSparkline"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Left Column: Charts -->
+        <div class="col-lg-8">
+            <!-- Revenue Trend Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-chart-bar me-2 text-primary"></i> Revenue Trend
+                    </h5>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="fas fa-filter me-1"></i> Filter
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-chart-type="daily">Daily</a></li>
+                            <li><a class="dropdown-item" href="#" data-chart-type="weekly">Weekly</a></li>
+                            <li><a class="dropdown-item" href="#" data-chart-type="monthly">Monthly</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="position-relative">
+                    <canvas id="revenueChart" height="300"></canvas>
+                    <div class="chart-loading d-none" id="revenueLoading">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Product Performance -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-star me-2 text-warning"></i> Product Performance
+                    </h5>
+                </div>
+                <canvas id="productChart" height="250"></canvas>
+            </div>
+        </div>
+        
+        <!-- Right Column: Top Products & Metrics -->
+        <div class="col-lg-4">
+            <!-- Top Products -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-trophy me-2 text-danger"></i> Top Selling Products
+                    </h5>
+                </div>
+                <div id="topProductsList">
+                    <!-- Products will be loaded here -->
+                    <div class="text-center py-4">
+                        <div class="loading-spinner mb-3"></div>
+                        <p class="text-muted">Loading products...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sales by Category -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-chart-pie me-2 text-purple"></i> Sales by Category
+                    </h5>
+                </div>
+                <div class="text-center">
+                    <canvas id="categoryChart" height="200"></canvas>
+                </div>
+                <div class="mt-3" id="categoryLegend"></div>
+            </div>
+            
+            <!-- Performance Metrics -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-bullseye me-2 text-info"></i> Performance Metrics
+                    </h5>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small">Conversion Rate</span>
+                        <span class="small fw-bold" id="conversionRate">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" id="conversionBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small">Customer Satisfaction</span>
+                        <span class="small fw-bold" id="satisfactionRate">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-info" id="satisfactionBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small">Repeat Purchase Rate</span>
+                        <span class="small fw-bold" id="repeatRate">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-purple" id="repeatBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script>
+// Global variables
+let revenueChart, productChart, categoryChart;
+let currentPeriod = '30d';
+
+// Animation for numbers
+function animateNumber(element, target, suffix = '') {
+    const duration = 1500;
+    const start = 0;
+    const increment = target / (duration / 16);
+    let current = start;
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            element.textContent = target.toLocaleString() + suffix;
+            clearInterval(timer);
+        } else {
+            element.textContent = Math.floor(current).toLocaleString() + suffix;
+        }
+    }, 16);
+}
+
+// Generate mock data for demo purposes
+function generateMockData(period = '30d') {
+    const dataPoints = period === '7d' ? 7 : period === '90d' ? 12 : period === '1y' ? 12 : 30;
+    
+    let labels = [];
+    let revenueData = [];
+    let ordersData = [];
+    
+    for (let i = 0; i < dataPoints; i++) {
+        if (period === '1y') {
+            labels.push(`Month ${i + 1}`);
+        } else {
+            labels.push(`Day ${i + 1}`);
+        }
+        
+        // Generate realistic looking data
+        const baseRevenue = period === '1y' ? 500000 : 50000;
+        const variation = Math.sin(i * 0.5) * 0.3 + (Math.random() * 0.2);
+        revenueData.push(Math.round(baseRevenue * (1 + variation)));
+        ordersData.push(Math.round((10 + Math.random() * 20) * (1 + variation * 0.5)));
+    }
+    
+    return { labels, revenueData, ordersData };
+}
+
+// Initialize charts
+function initializeCharts() {
+    const mockData = generateMockData(currentPeriod);
+    
+    // Revenue Trend Chart
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    if (revenueChart) revenueChart.destroy();
+    
+    revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: mockData.labels,
+            datasets: [{
+                label: 'Revenue (RWF)',
+                data: mockData.revenueData,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#28a745',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `Revenue: ${context.parsed.y.toLocaleString()} RWF`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString() + ' RWF';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    // Product Performance Chart
+    const productCtx = document.getElementById('productChart').getContext('2d');
+    if (productChart) productChart.destroy();
+    
+    productChart = new Chart(productCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+            datasets: [{
+                label: 'Units Sold',
+                data: [45, 38, 29, 24, 18],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(23, 162, 184, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(111, 66, 193, 0.7)',
+                    'rgba(220, 53, 69, 0.7)'
+                ],
+                borderColor: [
+                    '#28a745',
+                    '#17a2b8',
+                    '#ffc107',
+                    '#6f42c1',
+                    '#dc3545'
+                ],
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Sold: ${context.parsed.y} units`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 10
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    if (categoryChart) categoryChart.destroy();
+    
+    categoryChart = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Electronics', 'Fashion', 'Home', 'Groceries', 'Others'],
+            datasets: [{
+                data: [35, 25, 20, 15, 5],
+                backgroundColor: [
+                    '#28a745',
+                    '#17a2b8',
+                    '#ffc107',
+                    '#6f42c1',
+                    '#dc3545'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.parsed}%`;
+                        }
+                    }
+                }
+            },
+            cutout: '65%',
+            animation: {
+                animateScale: true,
+                animateRotate: true,
+                duration: 1000
+            }
+        }
+    });
+    
+    // Generate legend for category chart
+    const legendContainer = document.getElementById('categoryLegend');
+    const legendHtml = `
+        <div class="row text-center">
+            <div class="col">
+                <span class="d-inline-block me-2" style="width: 12px; height: 12px; background-color: #28a745;"></span>
+                <small>Electronics</small>
+            </div>
+            <div class="col">
+                <span class="d-inline-block me-2" style="width: 12px; height: 12px; background-color: #17a2b8;"></span>
+                <small>Fashion</small>
+            </div>
+            <div class="col">
+                <span class="d-inline-block me-2" style="width: 12px; height: 12px; background-color: #ffc107;"></span>
+                <small>Home</small>
+            </div>
+        </div>
+    `;
+    legendContainer.innerHTML = legendHtml;
+    
+    // Update top products list
+    const products = [
+        { name: 'Premium Smartphone X', sales: 45, revenue: 6750000 },
+        { name: 'Wireless Bluetooth Earbuds', sales: 38, revenue: 2850000 },
+        { name: 'Laptop Pro 2024', sales: 29, revenue: 8700000 },
+        { name: 'Fitness Tracker Watch', sales: 24, revenue: 1200000 },
+        { name: 'Home Speaker System', sales: 18, revenue: 900000 }
+    ];
+    
+    let productsHtml = '';
+    products.forEach((product, index) => {
+        productsHtml += `
+            <div class="top-product-item" style="animation-delay: ${index * 0.1}s">
+                <div class="product-rank rank-${index + 1}">${index + 1}</div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">${product.name}</h6>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">${product.sales} units sold</span>
+                        <span class="fw-bold text-success">${product.revenue.toLocaleString()} RWF</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('topProductsList').innerHTML = productsHtml;
+    
+    // Update animated numbers
+    const totalRevenue = mockData.revenueData.reduce((a, b) => a + b, 0);
+    const totalOrders = mockData.ordersData.reduce((a, b) => a + b, 0);
+    const avgOrderValue = totalRevenue / totalOrders;
+    const growthRate = 12.5;
+    
+    animateNumber(document.getElementById('totalRevenue'), totalRevenue, ' RWF');
+    animateNumber(document.getElementById('totalOrders'), totalOrders);
+    animateNumber(document.getElementById('avgOrderValue'), Math.round(avgOrderValue), ' RWF');
+    animateNumber(document.getElementById('growthRate'), growthRate, '%');
+    
+    // Update progress bars
+    const metrics = {
+        conversion: 42,
+        satisfaction: 87,
+        repeat: 65
+    };
+    
+    Object.keys(metrics).forEach(metric => {
+        const bar = document.getElementById(`${metric}Bar`);
+        const rate = document.getElementById(`${metric}Rate`);
+        const target = metrics[metric];
+        
+        bar.style.width = '0%';
+        rate.textContent = '0%';
+        
+        setTimeout(() => {
+            bar.style.width = target + '%';
+            rate.textContent = target + '%';
+        }, 300);
+    });
+}
+
+// Generate sparkline charts
+function generateSparklines() {
+    const sparkOpts = {
+        type: 'line',
+        data: {
+            datasets: [{
+                data: Array.from({length: 10}, () => Math.random() * 100),
+                borderColor: '#28a745',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false }, y: { display: false } }
+        }
+    };
+    
+    ['revenueSparkline', 'ordersSparkline', 'growthSparkline', 'avgSparkline'].forEach(id => {
+        const ctx = document.getElementById(id).getContext('2d');
+        new Chart(ctx, sparkOpts);
+    });
+}
+
+// Period filter functionality
+document.querySelectorAll('[data-period]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Update active button
+        document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update current period
+        currentPeriod = this.dataset.period;
+        
+        // Show loading state
+        document.getElementById('revenueLoading').classList.remove('d-none');
+        
+        // Simulate API call delay
+        setTimeout(() => {
+            initializeCharts();
+            document.getElementById('revenueLoading').classList.add('d-none');
+        }, 800);
+    });
+});
+
+// Chart type filter
+document.querySelectorAll('[data-chart-type]').forEach(item => {
+    item.addEventListener('click', function(e) {
+        e.preventDefault();
+        // In a real app, this would reload chart data with new aggregation
+        alert(`Switching to ${this.dataset.chartType} view...`);
+    });
+});
+
+// Initialize everything when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    generateSparklines();
+    
+    // Add some interactive animations
+    document.querySelectorAll('.stat-card').forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Auto-refresh simulation (every 30 seconds)
+    setInterval(() => {
+        const badge = document.querySelector('.trend-badge.trend-up');
+        badge.classList.add('pulse-animation');
+        setTimeout(() => badge.classList.remove('pulse-animation'), 2000);
+    }, 30000);
+});
+</script>
+{% endblock %}

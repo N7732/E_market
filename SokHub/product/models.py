@@ -9,6 +9,25 @@ from django.core.exceptions import ValidationError
 from django.db.models import F, Q
 from decimal import Decimal
 import uuid
+from django.conf import settings
+import os
+from django.utils.timezone import now
+
+
+def image_path(instance, filename):
+
+    ext = filename.split('.')[-1].lower()
+    
+    # Generate unique filename to prevent conflicts
+    unique_filename = f"{uuid.uuid4().hex}.{ext}"
+    date_path = now().strftime("%Y/%m")
+    full_path = os.path.join("products", date_path, filename)
+    
+    # Ensure directory exists
+    media_dir = os.path.join(settings.MEDIA_ROOT, "products", date_path)
+    os.makedirs(media_dir, exist_ok=True)
+    return full_path
+
 
 class Category(models.Model):
     """Product categories for better organization"""
@@ -86,7 +105,7 @@ class Product(models.Model):
     requires_shipping = models.BooleanField(default=True)
     
     # Images
-    main_image = models.ImageField(upload_to='products/main/', null=True, blank=True)
+    main_image = models.ImageField(upload_to=image_path, null=True, blank=True)
     
     # SEO
     meta_title = models.CharField(max_length=200, blank=True, null=True)
@@ -246,7 +265,7 @@ class Product(models.Model):
 class ProductImage(models.Model):
     """Additional product images"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='products/images/')
+    image = models.ImageField(upload_to=image_path)
     alt_text = models.CharField(max_length=200, blank=True, null=True)
     display_order = models.IntegerField(default=0)
     is_main = models.BooleanField(default=False)
@@ -382,3 +401,15 @@ def create_initial_stock_history(sender, instance, created, **kwargs):
             notes='Initial stock',
             performed_by=instance.vendor
         )
+
+class ProductAnalytics(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="analytics")
+    sales_count = models.IntegerField(default=0)
+    report_date = models.DateField()
+    
+    class Meta:
+        ordering = ['-report_date']
+
+    def __str__(self):
+        return f"{self.product.name} - {self.sales_count} sales on {self.report_date}"
+

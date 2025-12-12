@@ -32,4 +32,7 @@ urlpatterns = [
     path('api/cart-count/', views.get_cart_count, name='get_cart_count'),
     path('api/notifications/', views.get_unread_notifications, name='get_unread_notifications'),
     path('api/notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
+
+    # Reports
+    path('vendor/reports/sales/', views.vendor_report, name='vendor_reports'),
 ]

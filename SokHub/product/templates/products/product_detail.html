@@ -516,11 +516,11 @@
                     <div class="mb-3">
                         <label class="form-label">Rating</label>
                         <div class="rating-input">
-                            {% for i in "12345"|reversed %}
-                            <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" class="d-none">
-                            <label for="star{{ i }}" class="star-label">
-                                <i class="far fa-star fa-2x"></i>
-                            </label>
+                            {% for i in rating_range %}
+                                <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" class="d-none">
+                                <label for="star{{ i }}" class="star-label">
+                                    <i class="far fa-star fa-2x"></i>
+                                </label>
                             {% endfor %}
                         </div>
                     </div>

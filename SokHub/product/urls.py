@@ -21,4 +21,8 @@ urlpatterns = [
     path('api/<int:pk>/availability/', views.product_availability_check, name='product_availability_check'),
     path('api/<int:pk>/reserve/', views.reserve_stock, name='reserve_stock'),
     path('api/<int:pk>/wishlist/', views.toggle_wishlist, name='toggle_wishlist'),
+
+    # Analytics
+    path('vendor/analytics/sales/', views.vendor_analytics, name='vendor_analytics'),
+    
 ]
