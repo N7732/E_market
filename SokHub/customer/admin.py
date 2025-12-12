@@ -6,6 +6,8 @@ from django.urls import reverse
 from .models import User, VendorProfile, CustomerProfile
 from django.utils import timezone
 from .form import AdminUserCreationForm, AdminUserChangeForm, VendorApprovalForm
+from django.utils.safestring import mark_safe
+
 
 class CustomerProfileInline(admin.StackedInline):
     model = CustomerProfile
@@ -30,6 +32,7 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('user_type', 'is_staff', 'is_active', 'date_joined')
     search_fields = ('username', 'email', 'phone', 'vendorprofile__business_name')
     ordering = ('-date_joined',)
+
     
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
@@ -58,10 +61,11 @@ class UserAdmin(BaseUserAdmin):
     def is_approved_vendor(self, obj):
         if obj.user_type == 'vendor' and hasattr(obj, 'vendorprofile'):
             if obj.vendorprofile.is_approved:
-                return format_html('<span style="color: green;">✓ Approved</span>')
+                return mark_safe('<span style="color: green;">✓ Approved</span>')
             else:
-                return format_html('<span style="color: red;">Pending</span>')
+                return mark_safe('<span style="color: red;">Pending</span>')
         return '-'
+
     is_approved_vendor.short_description = 'Vendor Status'
     
     def get_queryset(self, request):

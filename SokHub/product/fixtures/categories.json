@@ -1,0 +1,124 @@
+
+[
+    {
+        "model": "product.category",
+        "pk": 1,
+        "fields": {
+            "name": "Fashions",
+            "slug": "fashions",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 2,
+        "fields": {
+            "name": "Electronics",
+            "slug": "electronics",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 3,
+        "fields": {
+            "name": "Home & Garden",
+            "slug": "home-garden",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 4,
+        "fields": {
+            "name": "Books",
+            "slug": "books",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 5,
+        "fields": {
+            "name": "Toys",
+            "slug": "toys",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 6,
+        "fields": {
+            "name": "Sports",
+            "slug": "sports",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 7,
+        "fields": {
+            "name": "Jewelry",
+            "slug": "jewelry",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 8,
+        "fields": {
+            "name": "Health & Beauty",
+            "slug": "health-beauty",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 9,
+        "fields": {
+            "name": "Automotive",
+            "slug": "automotive",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 10,
+        "fields": {
+            "name": "Music",
+            "slug": "music",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    },
+    {
+        "model": "product.category",
+        "pk": 11,
+        "fields": {
+            "name": "Groceries",
+            "slug": "groceries",
+            "is_active": true,
+            "created_at": "2025-12-12T06:55:53Z",
+            "updated_at": "2025-12-12T06:55:53Z"
+        }
+    }
+]

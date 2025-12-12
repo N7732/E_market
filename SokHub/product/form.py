@@ -35,6 +35,12 @@ class ProductForm(forms.ModelForm):
         # Make price required
         self.fields['price'].required = True
         self.fields['price'].widget.attrs['min'] = '0.01'
+
+         # This connects to database categories
+        self.fields['category'].queryset = Category.objects.filter(is_active=True)
+        self.fields['category'].empty_label = "--- Select Category ---"
+
+        #
         
         # Add bootstrap classes
         for field in self.fields:
@@ -135,7 +141,7 @@ class ProductSearchForm(forms.Form):
     category = forms.ModelChoiceField(
         queryset=Category.objects.filter(is_active=True),
         required=False,
-        empty_label="All Categories",
+        empty_label='All Categories',
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     min_price = forms.DecimalField(

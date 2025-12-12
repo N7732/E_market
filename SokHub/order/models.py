@@ -361,7 +361,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     """Individual items in an order"""
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey('products.Product', on_delete=models.PROTECT, related_name='order_items')
+    product = models.ForeignKey('product.Product', on_delete=models.PROTECT, related_name='order_items')
     vendor = models.ForeignKey('customer.User', on_delete=models.CASCADE, 
                               limit_choices_to={'user_type': 'vendor'})
     
@@ -469,7 +469,7 @@ class Cart(models.Model):
 class CartItem(models.Model):
     """Items in shopping cart"""
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey('products.Product', on_delete=models.CASCADE)
+    product = models.ForeignKey('product.Product', on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1, validators=[MinValueValidator(1)])
     added_at = models.DateTimeField(auto_now_add=True)
     

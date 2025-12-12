@@ -45,7 +45,11 @@ urlpatterns = [
     path('vendor/pending/', views.vendor_pending, name='vendor_pending'),
     
     # Static Pages
-    path('', views.home, name='home'),
+    path('home/', views.home, name='home'),
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
+
+    # Dashboards
+    path("customer_dashboard/", views.customer_dashboard, name="customer_dashboard"),
+     path("vendor_dashboard/", views.vendor_dashboard, name="vendor_dashboard"),
 ]

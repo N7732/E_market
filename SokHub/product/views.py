@@ -201,7 +201,7 @@ def vendor_add_product(request):
     else:
         form = ProductForm(vendor=request.user)
     
-    return render(request, 'products/vendor_add_product.html', {'form': form})
+    return render(request, 'vendor/add_product.html', {'form': form})
 
 @login_required
 @vendor_required
