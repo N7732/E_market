@@ -1,14 +1,14 @@
 <!-- templates/products/includes/product_card.html -->
-<div class="card h-100 shadow-sm">
+<div class="card h-100 shadow-sm product-card">
     <div class="position-relative">
         <a href="{% url 'product_detail' product.slug %}">
             {% if product.main_image %}
                 <img src="{{ product.main_image.url }}" 
-                     class="card-img-top" 
+                     class="card-img-top product-image" 
                      alt="{{ product.name }}"
                      style="height: 200px; object-fit: cover;">
             {% else %}
-                <div class="bg-light d-flex align-items-center justify-content-center" 
+                <div class="bg-light d-flex align-items-center justify-content-center product-image" 
                      style="height: 200px;">
                     <i class="fas fa-image fa-3x text-muted"></i>
                 </div>
@@ -30,6 +30,10 @@
             {% if product.get_discount_percentage %}
                 <span class="badge bg-danger ms-1">-{{ product.get_discount_percentage }}%</span>
             {% endif %}
+            
+            {% if product.is_new %}
+                <span class="badge bg-success ms-1">New</span>
+            {% endif %}
         </div>
     </div>
     
@@ -40,8 +44,12 @@
             </a>
         </h6>
         
+        <p class="card-text small text-muted mb-2">
+            {{ product.short_description|truncatechars:80 }}
+        </p>
+        
         <div class="mb-2">
-            <span class="fw-bold">{{ product.price }} RWF</span>
+            <span class="fw-bold h5 text-dark">{{ product.price }} RWF</span>
             {% if product.compare_at_price %}
                 <small class="text-muted text-decoration-line-through ms-2">
                     {{ product.compare_at_price }} RWF
@@ -51,11 +59,18 @@
         
         <div class="d-flex justify-content-between align-items-center mb-3">
             <small class="text-muted">
+                <i class="fas fa-store me-1"></i>
                 {{ product.vendor.vendorprofile.business_name|default:product.vendor.username }}
             </small>
             <div class="text-warning">
-                <i class="fas fa-star"></i>
-                <small>{{ product.average_rating|floatformat:1 }}</small>
+                {% for i in "12345"|make_list %}
+                    {% if forloop.counter <= product.average_rating|default:0 %}
+                        <i class="fas fa-star"></i>
+                    {% else %}
+                        <i class="far fa-star"></i>
+                    {% endif %}
+                {% endfor %}
+                <small class="text-muted ms-1">({{ product.review_count|default:0 }})</small>
             </div>
         </div>
         
@@ -64,30 +79,189 @@
             <div class="mb-3">
                 {% if product.is_in_stock %}
                     <div class="progress" style="height: 6px;">
-                        {% with percent=product.get_available_quantity|floatformat:0 %}
+                        {% with available=product.get_available_quantity %}
+                        {% with percent=available|floatformat:0 %}
                         <div class="progress-bar bg-success" role="progressbar" 
-                             style="width: {{ percent }}%">
+                             style="width: {% widthratio available 100 100 %}%">
                         </div>
+                        {% endwith %}
                         {% endwith %}
                     </div>
                     <small class="text-muted">
+                        <i class="fas fa-box me-1"></i>
                         {{ product.get_available_quantity }} available
                     </small>
                 {% else %}
-                    <div class="text-danger small">
-                        <i class="fas fa-times-circle me-1"></i>
-                        Out of stock
+                    <div class="alert alert-danger py-2 mb-0">
+                        <small><i class="fas fa-times-circle me-1"></i> Out of stock</small>
                     </div>
                 {% endif %}
             </div>
         {% endif %}
     </div>
     
+    <!-- CARD FOOTER WITH ADD TO CART BUTTON -->
     <div class="card-footer bg-white border-top-0 pt-0">
         <div class="d-grid gap-2">
-            <a href="{% url 'product_detail' product.slug %}" class="btn btn-outline-magenta btn-sm">
+            <!-- View Details Button -->
+            <a href="{% url 'product_detail' product.slug %}" 
+               class="btn btn-outline-magenta btn-sm">
                 <i class="fas fa-eye me-2"></i> View Details
             </a>
+            
+            <!-- Add to Cart Button -->
+            {% if product.is_in_stock %}
+                {% if user.is_authenticated %}
+                <form action="{% url 'cart_add' product.id %}" method="post" class="mb-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="fas fa-cart-plus me-2"></i> Add to Cart
+                    </button>
+                </form>
+                {% else %}
+                <a href="{% url 'login' %}?next={{ request.path }}" 
+                   class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-sign-in-alt me-2"></i> Login to Buy
+                </a>
+                {% endif %}
+            {% else %}
+                <button class="btn btn-outline-secondary btn-sm" disabled>
+                    <i class="fas fa-cart-plus me-2"></i> Out of Stock
+                </button>
+            {% endif %}
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="text-center mt-3">
+            <small>
+                {% if user.is_authenticated %}
+                <a href="{% url 'add_to_wishlist' product.id %}" 
+                   class="text-muted me-3" 
+                   title="Add to Wishlist">
+                    <i class="far fa-heart"></i> Save
+                </a>
+                {% endif %}
+                <a href="#" class="text-muted" data-bs-toggle="modal" 
+                   data-bs-target="#shareModal{{ product.id }}" title="Share">
+                    <i class="fas fa-share-alt"></i> Share
+                </a>
+            </small>
         </div>
     </div>
 </div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal{{ product.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share {{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-around mb-3">
+                    <a href="https://facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
+                       target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="fab fa-facebook"></i> Facebook
+                    </a>
+                    <a href="https://twitter.com/intent/tweet?text=Check%20out%20{{ product.name }}%20on%20SokHub&url={{ request.build_absolute_uri }}" 
+                       target="_blank" class="btn btn-outline-info btn-sm">
+                        <i class="fab fa-twitter"></i> Twitter
+                    </a>
+                    <a href="whatsapp://send?text=Check%20out%20{{ product.name }}%20-%20{{ request.build_absolute_uri }}" 
+                       target="_blank" class="btn btn-outline-success btn-sm">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
+                    </a>
+                </div>
+                <div class="input-group">
+                    <input type="text" class="form-control" 
+                           value="{{ request.build_absolute_uri }}" 
+                           id="shareLink{{ product.id }}" readonly>
+                    <button class="btn btn-outline-secondary" 
+                            onclick="copyToClipboard('shareLink{{ product.id }}')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    var copyText = document.getElementById(elementId);
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value);
+    
+    // Show feedback
+    var btn = event.target.closest('button');
+    var originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-success');
+    
+    setTimeout(function() {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+    }, 2000);
+}
+</script>
+
+<style>
+.product-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    border-color: #FF00FF;
+}
+
+.product-image {
+    transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
+}
+
+.badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 10px;
+}
+
+.progress {
+    border-radius: 3px;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 3px;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    transition: all 0.3s;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #218838, #1e7e34);
+    transform: translateY(-2px);
+}
+
+.btn-outline-magenta {
+    color: #FF00FF;
+    border-color: #FF00FF;
+}
+
+.btn-outline-magenta:hover {
+    background-color: #FF00FF;
+    color: white;
+}
+</style>

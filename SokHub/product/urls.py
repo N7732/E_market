@@ -21,8 +21,11 @@ urlpatterns = [
     path('api/<int:pk>/availability/', views.product_availability_check, name='product_availability_check'),
     path('api/<int:pk>/reserve/', views.reserve_stock, name='reserve_stock'),
     path('api/<int:pk>/wishlist/', views.toggle_wishlist, name='toggle_wishlist'),
-
+    
     # Analytics
     path('vendor/analytics/sales/', views.vendor_analytics, name='vendor_analytics'),
+    path('api/product-detail/<int:product_id>/', views.product_detail_api, name='product_detail_api'),
     
+    # Optional: For product detail overlay
+    # path('api/<int:pk>/detail/', views.product_detail_api, name='product_detail_api'),
 ]

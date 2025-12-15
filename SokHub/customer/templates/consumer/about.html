@@ -3,149 +3,291 @@
 
 {% block title %}About Us - SokHub{% endblock %}
 
+{% block extra_css %}
+<style>
+    .about-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    
+    .value-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 1.8rem;
+    }
+    
+    .feature-card {
+        border: none;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        height: 100%;
+        background: #f8f9fa;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(255, 0, 255, 0.1);
+    }
+    
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #FF00FF;
+        line-height: 1;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #FF00FF;
+    }
+    
+    .timeline-item::after {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 12px;
+        width: 2px;
+        height: calc(100% + 18px);
+        background: #e0e0e0;
+    }
+    
+    .timeline-item:last-child::after {
+        display: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <!-- Hero Section -->
-    <div class="row align-items-center mb-5">
-        <div class="col-lg-6">
-            <h1 class="display-4 fw-bold mb-4">
-                About <span class="text-magenta">SokHub</span>
-            </h1>
-            <p class="lead mb-4">
-                SokHub is a modern marketplace platform connecting buyers and sellers 
-                with a focus on security, convenience, and excellent user experience.
-            </p>
-            <div class="d-flex gap-3">
-                <a href="{% url 'register' %}" class="btn btn-magenta btn-lg">
-                    <i class="fas fa-user-plus me-2"></i> Join Now
-                </a>
-                <a href="{% url 'contact' %}" class="btn btn-outline-magenta btn-lg">
-                    <i class="fas fa-envelope me-2"></i> Contact Us
-                </a>
+    <div class="about-hero text-white p-5 mb-5">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">
+                    Revolutionizing E-commerce in <span class="text-warning">Rwanda</span>
+                </h1>
+                <p class="lead mb-4">
+                    SokHub is Rwanda's premier digital marketplace platform, seamlessly connecting buyers with trusted local vendors through a secure, efficient, and user-friendly ecosystem designed for the modern African consumer.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{% url 'register' %}" class="btn btn-light btn-lg">
+                        <i class="fas fa-store me-2"></i> Start Selling
+                    </a>
+                    <a href="{% url 'product_list' %}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-shopping-cart me-2"></i> Start Shopping
+                    </a>
+                </div>
             </div>
-        </div>
-        <div class="col-lg-6">
-            <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                 alt="About SokHub" class="img-fluid rounded-3 shadow-lg">
         </div>
     </div>
     
-    <!-- Mission & Vision -->
+    <!-- Platform Overview -->
     <div class="row mb-5">
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 border-magenta">
+        <div class="col-12">
+            <h2 class="text-center fw-bold mb-5">The Future of Shopping is Here</h2>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="feature-card p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="value-icon bg-magenta text-white">
+                                <i class="fas fa-store"></i>
+                            </div>
+                            <h4 class="ms-3 mb-0">Vendor-Centric Platform</h4>
+                        </div>
+                        <p class="mb-0">
+                            We empower Rwandan businesses with cutting-edge tools for inventory management, 
+                            sales analytics, and digital storefronts. Our vendor dashboard provides real-time 
+                            insights and automated order processing.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-card p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="value-icon bg-black text-white">
+                                <i class="fas fa-shopping-bag"></i>
+                            </div>
+                            <h4 class="ms-3 mb-0">Customer-First Experience</h4>
+                        </div>
+                        <p class="mb-0">
+                            Enjoy a seamless shopping journey with advanced search filters, secure checkout, 
+                            MTN Momo integration, and instant PDF invoice generation. Our platform prioritizes 
+                            security and convenience.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Key Statistics -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="bg-light rounded-3 p-5">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-4">
+                        <div class="stat-number">500+</div>
+                        <p class="text-muted mb-0">Active Vendors</p>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="stat-number">10K+</div>
+                        <p class="text-muted mb-0">Products Listed</p>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="stat-number">50K+</div>
+                        <p class="text-muted mb-0">Happy Customers</p>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="stat-number">99.8%</div>
+                        <p class="text-muted mb-0">Uptime Reliability</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Our Mission & Vision -->
+    <div class="row mb-5">
+        <div class="col-lg-6 mb-4">
+            <div class="card border-magenta h-100">
                 <div class="card-body p-4">
                     <div class="text-center mb-4">
-                        <div class="bg-magenta text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px;">
-                            <i class="fas fa-bullseye fa-2x"></i>
+                        <div class="value-icon bg-magenta text-white">
+                            <i class="fas fa-bullseye"></i>
                         </div>
                     </div>
-                    <h3 class="text-center mb-3">Our Mission</h3>
-                    <p class="text-center">
-                        To create a secure and efficient marketplace that empowers 
-                        local businesses while providing customers with a seamless 
-                        shopping experience.
+                    <h3 class="text-center mb-3 fw-bold">Our Mission</h3>
+                    <p class="text-center mb-4">
+                        To democratize e-commerce in Rwanda by providing accessible, secure, and efficient 
+                        digital marketplace solutions that empower local businesses and enhance consumer 
+                        shopping experiences.
                     </p>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Support local business growth</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Ensure transaction security</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Promote digital literacy</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Drive economic empowerment</li>
+                    </ul>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 border-magenta">
+        <div class="col-lg-6 mb-4">
+            <div class="card border-black h-100">
                 <div class="card-body p-4">
                     <div class="text-center mb-4">
-                        <div class="bg-black text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px;">
-                            <i class="fas fa-eye fa-2x"></i>
+                        <div class="value-icon bg-black text-white">
+                            <i class="fas fa-eye"></i>
                         </div>
                     </div>
-                    <h3 class="text-center mb-3">Our Vision</h3>
-                    <p class="text-center">
-                        To become the leading digital marketplace in the region, 
-                        known for innovation, reliability, and customer satisfaction.
+                    <h3 class="text-center mb-3 fw-bold">Our Vision</h3>
+                    <p class="text-center mb-4">
+                        To become East Africa's leading digital commerce platform, recognized for innovation, 
+                        reliability, and positive social impact by 2025.
+                    </p>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <h5>2023 - Platform Launch</h5>
+                            <p class="text-muted">Successfully launched with 100+ vendors and integrated MTN Momo payments.</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h5>2024 - Regional Expansion</h5>
+                            <p class="text-muted">Expanding services to neighboring countries with localized solutions.</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h5>2025 - Market Leadership</h5>
+                            <p class="text-muted">Aiming to be the preferred e-commerce platform in East Africa.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Core Values -->
+    <div class="mb-5">
+        <h2 class="text-center fw-bold mb-5">Our Core Values</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card p-4 text-center">
+                    <div class="value-icon bg-magenta text-white mb-3">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4 class="mb-3">Security First</h4>
+                    <p class="mb-0">
+                        Enterprise-grade encryption, secure payment processing, and data protection 
+                        protocols ensure your transactions and information remain safe.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card p-4 text-center">
+                    <div class="value-icon bg-black text-white mb-3">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h4 class="mb-3">Innovation Driven</h4>
+                    <p class="mb-0">
+                        Continuous platform enhancement with AI-powered recommendations, 
+                        real-time analytics, and automated inventory management systems.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card p-4 text-center">
+                    <div class="value-icon bg-magenta text-white mb-3">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <h4 class="mb-3">Community Focused</h4>
+                    <p class="mb-0">
+                        Dedicated to supporting local entrepreneurship and creating economic 
+                        opportunities through digital commerce education and resources.
                     </p>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Features -->
+    <!-- Technology Stack -->
     <div class="mb-5">
-        <h2 class="text-center mb-4">Why Choose SokHub?</h2>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-shield-alt fa-3x text-magenta mb-3"></i>
-                        <h4>Secure Platform</h4>
-                        <p>Advanced security measures to protect your data and transactions.</p>
+        <div class="card border-0 bg-dark text-white">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4 fw-bold">Powered by Cutting-Edge Technology</h2>
+                <div class="row text-center">
+                    <div class="col-md-4 mb-4">
+                        <i class="fab fa-python fa-3x mb-3 text-magenta"></i>
+                        <h5>Django Framework</h5>
+                        <p class="small mb-0">Secure, scalable backend infrastructure</p>
                     </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-mobile-alt fa-3x text-magenta mb-3"></i>
-                        <h4>MTN Momo Integration</h4>
-                        <p>Seamless payments through Rwanda's most popular mobile money service.</p>
+                    <div class="col-md-4 mb-4">
+                        <i class="fas fa-mobile-alt fa-3x mb-3 text-magenta"></i>
+                        <h5>MTN Momo API</h5>
+                        <p class="small mb-0">Integrated mobile money payments</p>
                     </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-file-pdf fa-3x text-magenta mb-3"></i>
-                        <h4>Digital Documentation</h4>
-                        <p>Automatic PDF invoice generation for all transactions.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Team -->
-    <div class="mb-5">
-        <h2 class="text-center mb-4">Our Values</h2>
-        <div class="row g-4">
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-handshake fa-2x text-magenta mb-3"></i>
-                        <h5>Trust</h5>
-                        <p class="small">Building reliable relationships between buyers and sellers.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-lightbulb fa-2x text-magenta mb-3"></i>
-                        <h5>Innovation</h5>
-                        <p class="small">Continuously improving our platform with new features.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-users fa-2x text-magenta mb-3"></i>
-                        <h5>Community</h5>
-                        <p class="small">Supporting local businesses and growing together.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-headset fa-2x text-magenta mb-3"></i>
-                        <h5>Support</h5>
-                        <p class="small">24/7 customer support for all your needs.</p>
+                    <div class="col-md-4 mb-4">
+                        <i class="fas fa-file-pdf fa-3x mb-3 text-magenta"></i>
+                        <h5>Automated Documentation</h5>
+                        <p class="small mb-0">Instant invoice & receipt generation</p>
                     </div>
                 </div>
             </div>
@@ -153,12 +295,48 @@
     </div>
     
     <!-- Call to Action -->
-    <div class="bg-black text-white rounded-3 p-5 text-center">
-        <h2 class="mb-3">Ready to Join Our Marketplace?</h2>
-        <p class="lead mb-4">Register today and experience the future of e-commerce.</p>
-        <a href="{% url 'register' %}" class="btn btn-magenta btn-lg">
-            <i class="fas fa-user-plus me-2"></i> Create Free Account
-        </a>
+    <div class="text-center mb-5">
+        <h2 class="fw-bold mb-3">Join the E-commerce Revolution</h2>
+        <p class="lead mb-4">Whether you're a business owner or a shopper, SokHub offers the tools and marketplace you need to thrive in Rwanda's digital economy.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="{% url 'register' %}" class="btn btn-magenta btn-lg px-5">
+                <i class="fas fa-user-plus me-2"></i> Register Now
+            </a>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-magenta btn-lg px-5">
+                <i class="fas fa-shopping-bag me-2"></i> Browse Products
+            </a>
+            {% if user.is_authenticated and user.user_type == 'vendor' %}
+            <a href="{% url 'vendor_product_list' %}" class="btn btn-dark btn-lg px-5">
+                <i class="fas fa-store me-2"></i> Vendor Dashboard
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Trust Indicators -->
+    <div class="bg-light rounded-3 p-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="mb-2 fw-bold">Trusted by Businesses Across Rwanda</h5>
+                <p class="small text-muted mb-0">From Kigali to Rubavu, vendors choose SokHub for reliable, secure, and profitable e-commerce solutions.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex justify-content-end gap-3">
+                    <div class="text-center">
+                        <div class="fw-bold text-magenta">24/7</div>
+                        <small class="text-muted">Support</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold text-magenta">100%</div>
+                        <small class="text-muted">Secure</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold text-magenta">0%</div>
+                        <small class="text-muted">Hidden Fees</small>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

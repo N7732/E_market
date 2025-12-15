@@ -51,5 +51,5 @@ urlpatterns = [
 
     # Dashboards
     path("customer_dashboard/", views.customer_dashboard, name="customer_dashboard"),
-     path("vendor_dashboard/", views.vendor_dashboard, name="vendor_dashboard"),
+    path("vendor_dashboard/", views.vendor_dashboard, name="vendor_dashboard"),
 ]

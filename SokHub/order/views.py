@@ -26,113 +26,109 @@ from django.db.models.functions import TruncMonth
 
 # ==================== CART VIEWS ====================
 
-@login_required
-@customer_required
 def cart_view(request):
-    """View shopping cart"""
-    cart, created = Cart.objects.get_or_create(customer=request.user)
-    cart_items = cart.items.select_related('product').all()
+    """Display the shopping cart"""
+    try:
+        cart = Cart.objects.get(user=request.user, active=True)
+        cart_items = cart.items.all().select_related('product', 'product__vendor')
+    except Cart.DoesNotExist:
+        cart = None
+        cart_items = []
     
-    # Update cart if product stock changed
-    for item in cart_items:
-        if item.product.is_track_inventory:
-            available = item.product.get_available_quantity()
-            if item.quantity > available and available > 0:
-                item.quantity = available
-                item.save()
-                messages.warning(request, f"Updated {item.product.name} quantity to {available} due to stock changes.")
-            elif available == 0:
-                item.delete()
-                messages.error(request, f"{item.product.name} is out of stock and was removed from your cart.")
+    # Calculate totals
+    subtotal = sum(item.get_total_price() for item in cart_items) if cart_items else 0
+    shipping = 0 if subtotal > 50000 else 2500
+    tax = subtotal * 0.18
+    total = subtotal + shipping + tax
     
     context = {
-        'cart': cart,
         'cart_items': cart_items,
-        'cart_total': cart.get_total(),
-        'item_count': cart.get_item_count(),
+        'cart_subtotal': subtotal,
+        'cart_tax': tax,
+        'cart_total': total,
+        'cart_shipping': shipping,
+        'cart_total_items': len(cart_items),
     }
     
-    return render(request, 'orders/cart.html', context)
+    return render(request, 'cart/cart.html', context)
 
-@login_required
-@customer_required
 @require_POST
-def add_to_cart(request, product_id):
+@login_required
+def cart_add(request, product_id):
     """Add product to cart"""
-    product = get_object_or_404(Product, id=product_id, status='active', is_available=True)
+    product = get_object_or_404(Product, id=product_id, is_available=True)
     
-    if not product.is_in_stock():
-        messages.error(request, "This product is out of stock.")
-        return redirect('product_detail', slug=product.slug)
+    # Get or create cart
+    cart, created = Cart.objects.get_or_create(
+        user=request.user,
+        active=True,
+        defaults={'session_key': request.session.session_key}
+    )
     
-    cart, created = Cart.objects.get_or_create(customer=request.user)
+    # Check if product already in cart
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        product=product,
+        defaults={'quantity': 1}
+    )
     
-    try:
-        with transaction.atomic():
-            cart_item, created = CartItem.objects.get_or_create(
-                cart=cart,
-                product=product,
-                defaults={'quantity': 1}
-            )
-            
-            if not created:
-                # Check if additional quantity can be added
-                if not cart_item.can_be_added(1):
-                    messages.error(request, f"Cannot add more {product.name} to cart. Available: {product.get_available_quantity()}")
-                    return redirect('cart')
-                
-                cart_item.quantity = F('quantity') + 1
-                cart_item.save()
-                cart_item.refresh_from_db()
-                
-                # Reserve additional stock
-                product.reserve_stock(1)
-            else:
-                # Reserve initial stock
-                product.reserve_stock(1)
-            
-            messages.success(request, f"Added {product.name} to cart.")
-    
-    except Exception as e:
-        messages.error(request, f"Failed to add to cart: {str(e)}")
-    
-    return redirect('cart')
-
-@login_required
-@customer_required
-@require_POST
-def update_cart_item(request, item_id):
-    """Update cart item quantity"""
-    cart_item = get_object_or_404(CartItem, id=item_id, cart__customer=request.user)
-    form = CartItemForm(request.POST, instance=cart_item, product=cart_item.product)
-    
-    if form.is_valid():
-        form.save()
-        messages.success(request, "Cart updated.")
+    if not created:
+        # Increase quantity if already in cart
+        if product.is_track_inventory and cart_item.quantity >= product.quantity:
+            messages.warning(request, f"Only {product.quantity} units available in stock")
+        else:
+            cart_item.quantity += 1
+            cart_item.save()
+            messages.success(request, f"Added {product.name} to cart")
     else:
-        for error in form.errors.values():
-            messages.error(request, error)
+        messages.success(request, f"Added {product.name} to cart")
     
     return redirect('cart')
 
 @login_required
-@customer_required
-@require_POST
-def remove_from_cart(request, item_id):
+def cart_remove(request, item_id):
     """Remove item from cart"""
-    cart_item = get_object_or_404(CartItem, id=item_id, cart__customer=request.user)
+    cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
     product_name = cart_item.product.name
     cart_item.delete()
-    messages.success(request, f"Removed {product_name} from cart.")
+    
+    messages.success(request, f"Removed {product_name} from cart")
+    return redirect('cart')
+
+@require_POST
+@login_required
+def cart_update(request):
+    """Update cart quantities"""
+    cart = get_object_or_404(Cart, user=request.user, active=True)
+    
+    for key, value in request.POST.items():
+        if key.startswith('quantity_'):
+            item_id = key.replace('quantity_', '')
+            try:
+                cart_item = CartItem.objects.get(id=item_id, cart=cart)
+                quantity = int(value)
+                
+                if quantity < 1:
+                    cart_item.delete()
+                elif cart_item.product.is_track_inventory and quantity > cart_item.product.quantity:
+                    messages.warning(request, 
+                        f"Only {cart_item.product.quantity} units available for {cart_item.product.name}")
+                else:
+                    cart_item.quantity = quantity
+                    cart_item.save()
+            except (CartItem.DoesNotExist, ValueError):
+                continue
+    
+    messages.success(request, "Cart updated successfully")
     return redirect('cart')
 
 @login_required
-@customer_required
-def clear_cart(request):
+def cart_clear(request):
     """Clear entire cart"""
-    cart = get_object_or_404(Cart, customer=request.user)
-    cart.clear()
-    messages.success(request, "Cart cleared.")
+    cart = get_object_or_404(Cart, user=request.user, active=True)
+    cart.items.all().delete()
+    
+    messages.success(request, "Cart cleared successfully")
     return redirect('cart')
 
 # ==================== CHECKOUT VIEWS ====================

@@ -315,23 +315,17 @@ class CustomPasswordResetView(PasswordResetView):
         try:
             # Get the user
             user = User.objects.get(email=email)
-
             # Generate token and uid
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-
             # Send custom HTML email
             send_password_reset_email(user, self.request, token, uid)
-
             # Also send security notification
             send_security_notification_email(user, self.request, 'password_reset_requested')
-
             logger.info(f"Password reset requested for email: {email}")
-
         except User.DoesNotExist:
             # Still show success message (security: don't reveal if user exists)
             pass
-
         return super().form_valid(form)
 
 
@@ -446,7 +440,6 @@ def customer_profile(request):
 
     return render(request, 'customer/customer_profile.html', context)
 
-
 @login_required
 def account_settings(request):
     """Account settings page"""
@@ -466,7 +459,7 @@ def account_settings(request):
         'is_customer': user.user_type == 'customer',
     }
 
-    return render(request, 'customer/account_settings.html', context)
+    return render(request, 'consumer/account_settings.html', context)
 
 
 # ============ UTILITY FUNCTIONS ============
@@ -510,8 +503,7 @@ def home(request):
     """Home page with role-based redirect for logged in users"""
     if request.user.is_authenticated:
         return redirect_user_by_role(request.user)
-
-    return render(request, 'consumer/home.html')
+    return render(request, 'products/product_list.html')
 
 
 def about(request):
@@ -531,9 +523,7 @@ def contact(request):
 def customer_dashboard(request):
     """Customer dashboard with black/magenta theme"""
     user = request.user
-    # Get customer's orders (will be implemented in orders app)
-    # orders = Order.objects.filter(customer=user).order_by('-created_at')[:5]
-
+    
     context = {
         'user': user,
         'customer_profile': user.customerprofile,

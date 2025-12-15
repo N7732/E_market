@@ -5,6 +5,110 @@
 
 {% block extra_css %}
 <style>
+    /* Product Details Overlay */
+    .product-detail-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 9999;
+        display: none;
+        overflow-y: auto;
+    }
+    
+    .product-detail-container {
+        background: white;
+        border-radius: 20px;
+        margin: 3cm 3cm 1cm 6cm; /* Top: 1cm, Right: 3cm, Bottom: 12cm, Left: 6cm */
+        position: relative;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease-out;
+        border-left: 8px solid #FF00FF; /* Magenta color accent */
+        max-width: calc(100% - 9cm); /* Account for left + right margins */
+        min-height: calc(100vh - 6cm); /* Account for top + bottom margins */
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .product-detail-container {
+            margin: 2cm 4cm 2cm 2cm;
+            max-width: calc(100% - 6cm);
+            min-height: calc(100vh - 4cm);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .product-detail-container {
+            margin: 1cm;
+            max-width: calc(100% - 2cm);
+            min-height: calc(100vh - 2cm);
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .close-detail-btn {
+        position: absolute;
+        top: 25px;
+        right: 25px;
+        background: #FF00FF;
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(255, 0, 255, 0.3);
+    }
+    
+    .close-detail-btn:hover {
+        background: #cc00cc;
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(255, 0, 255, 0.4);
+    }
+    
+    /* Filter Dropdown Button */
+    .filter-dropdown-btn {
+        background: #f8f9fa;
+        border: 2px solid #FF00FF;
+        color: #FF00FF;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+    
+    .filter-dropdown-btn:hover {
+        background: #FF00FF;
+        color: white;
+    }
+    
+    .filter-dropdown-menu {
+        min-width: 300px;
+        padding: 20px;
+        border-radius: 15px;
+        border: 2px solid #FF00FF;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Product Card Styles */
     .product-card {
         transition: transform 0.3s, box-shadow 0.3s;
         border: none;
@@ -53,15 +157,6 @@
         font-size: 0.85rem;
     }
     
-    .badge-new {
-        background: linear-gradient(135deg, #000000, #333333);
-        color: white;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-    
     .badge-out-of-stock {
         background: linear-gradient(135deg, #dc3545, #c82333);
         color: white;
@@ -82,11 +177,6 @@
         color: #6c757d;
         font-size: 1rem;
         margin-left: 8px;
-    }
-    
-    .product-rating {
-        color: #ffc107;
-        font-size: 0.9rem;
     }
     
     .product-vendor {
@@ -114,43 +204,48 @@
     .stock-low { background-color: #fff3cd; color: #856404; }
     .stock-out { background-color: #f8d7da; color: #721c24; }
     
-    .filter-sidebar {
+    /* Overlay Content Styles */
+    .overlay-product-image {
+        height: 400px;
         background: #f8f9fa;
         border-radius: 12px;
-        padding: 25px;
-        height: fit-content;
+        overflow: hidden;
+        margin-bottom: 15px;
     }
     
-    .filter-header {
-        border-bottom: 2px solid #FF00FF;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-    }
-    
-    .price-range-slider {
+    .overlay-product-image img {
         width: 100%;
-        margin: 20px 0;
+        height: 100%;
+        object-fit: contain;
+        padding: 20px;
     }
     
-    .sort-dropdown .dropdown-menu {
-        min-width: 200px;
+    .overlay-price-section {
+        background: #f9f9f9;
+        padding: 25px;
+        border-radius: 12px;
+        margin: 25px 0;
     }
     
-    .pagination .page-link {
-        color: #000000;
-        border: 1px solid #dee2e6;
+    .overlay-current-price {
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #000;
     }
     
-    .pagination .page-link:hover {
-        background-color: #FF00FF;
-        color: white;
-        border-color: #FF00FF;
+    .overlay-original-price {
+        font-size: 1.5rem;
+        color: #999;
+        text-decoration: line-through;
+        margin-left: 15px;
     }
     
-    .pagination .page-item.active .page-link {
-        background-color: #000000;
-        border-color: #000000;
-        color: white;
+    .overlay-vendor-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 25px 0;
+        border-left: 4px solid #000;
     }
     
     .empty-state {
@@ -167,6 +262,12 @@
 {% endblock %}
 
 {% block content %}
+<!-- Product Detail Overlay (Hidden by default) -->
+<div id="productDetailOverlay" class="product-detail-overlay">
+    <!-- Content will be loaded dynamically via JavaScript -->
+</div>
+
+<!-- Main Product List Content -->
 <div class="container py-5">
     <!-- Page Header -->
     <div class="row mb-5">
@@ -181,85 +282,9 @@
     </div>
     
     <div class="row">
-        <!-- Filters Sidebar -->
-        <div class="col-lg-3 mb-4">
-            <div class="filter-sidebar sticky-top" style="top: 20px;">
-                <h5 class="filter-header">
-                    <i class="fas fa-filter me-2 text-magenta"></i> Filters
-                </h5>
-                
-                <form method="get" id="filter-form">
-                    <!-- Search -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Search</label>
-                        {{ search_form.q }}
-                    </div>
-                    
-                    <!-- Category -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Category</label>
-                        {{ search_form.category }}
-                    </div>
-                    
-                    <!-- Price Range -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Price Range</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                {{ search_form.min_price }}
-                            </div>
-                            <div class="col-6">
-                                {{ search_form.max_price }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- In Stock Only -->
-                    <div class="mb-4">
-                        <div class="form-check">
-                            {{ search_form.in_stock }}
-                            <label class="form-check-label" for="{{ search_form.in_stock.id_for_label }}">
-                                In stock only
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Sort By -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Sort By</label>
-                        {{ search_form.sort_by }}
-                    </div>
-                    
-                    <!-- Filter Buttons -->
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-magenta">
-                            <i class="fas fa-search me-2"></i> Apply Filters
-                        </button>
-                        <a href="{% url 'product_list' %}" class="btn btn-outline-magenta">
-                            <i class="fas fa-times me-2"></i> Clear All
-                        </a>
-                    </div>
-                </form>
-                
-                <!-- Categories List -->
-                <div class="mt-5">
-                    <h6 class="fw-bold mb-3">Categories</h6>
-                    <div class="list-group list-group-flush">
-                        {% for category in categories %}
-                        <a href="{% url 'category_detail' category.slug %}" 
-                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            {{ category.name }}
-                            <span class="badge bg-magenta rounded-pill">{{ category.products.count }}</span>
-                        </a>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Products Grid -->
-        <div class="col-lg-9">
-            <!-- Products Header -->
+        <!-- Products Grid - Full Width since sidebar is removed -->
+        <div class="col-12">
+            <!-- Products Header with Filter Dropdown -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h5 class="mb-0">
@@ -271,9 +296,80 @@
                         <span class="text-muted">({{ page_obj.paginator.count }} items)</span>
                     </h5>
                 </div>
-                <div class="d-flex align-items-center">
-                    <!-- Sort Dropdown for Mobile -->
-                    <div class="dropdown d-lg-none me-3">
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Filter Dropdown Button -->
+                    <div class="dropdown">
+                        <button class="btn filter-dropdown-btn dropdown-toggle" type="button" 
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-filter me-2"></i> Filter Products
+                        </button>
+                        <div class="dropdown-menu filter-dropdown-menu p-3">
+                            <form method="get" id="filter-form">
+                                <!-- Search -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Search</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        {{ search_form.q }}
+                                    </div>
+                                </div>
+                                
+                                <!-- Category -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Category</label>
+                                    {{ search_form.category }}
+                                </div>
+                                
+                                <!-- Price Range -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Price Range (RWF)</label>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="input-group">
+                                                <span class="input-group-text">Min</span>
+                                                {{ search_form.min_price }}
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="input-group">
+                                                <span class="input-group-text">Max</span>
+                                                {{ search_form.max_price }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- In Stock Only -->
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        {{ search_form.in_stock }}
+                                        <label class="form-check-label" for="{{ search_form.in_stock.id_for_label }}">
+                                            In stock only
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Sort By -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Sort By</label>
+                                    {{ search_form.sort_by }}
+                                </div>
+                                
+                                <!-- Filter Buttons -->
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-magenta">
+                                        <i class="fas fa-check me-2"></i> Apply Filters
+                                    </button>
+                                    <a href="{% url 'product_list' %}" class="btn btn-outline-magenta">
+                                        <i class="fas fa-times me-2"></i> Clear All
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Sort Dropdown -->
+                    <div class="dropdown">
                         <button class="btn btn-outline-magenta dropdown-toggle" type="button" 
                                 data-bs-toggle="dropdown">
                             <i class="fas fa-sort-amount-down me-2"></i> Sort
@@ -299,123 +395,91 @@
                 </div>
             </div>
             
-            <!-- Featured Products (Only on first page) -->
-            {% if page_obj.number == 1 and featured_products %}
-            <div class="mb-5">
-                <h5 class="mb-4">
-                    <i class="fas fa-star me-2 text-magenta"></i> Featured Products
-                </h5>
-                <div class="row">
-                    {% for product in featured_products %}
-                    <div class="col-md-3 col-6 mb-4">
-                        {% include "products/includes/product_card.html" with product=product %}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-            
             <!-- Products Grid -->
             {% if page_obj.object_list %}
             <div id="products-grid" class="row">
                 {% for product in page_obj %}
                 <div class="col-xl-3 col-lg-4 col-md-4 col-sm-6 mb-4">
-                    {% include "products/includes/product_card.html" with product=product %}
-                </div>
-                {% endfor %}
-            </div>
-            
-            <!-- Products List View (Hidden by default) -->
-            <div id="products-list" class="d-none">
-                {% for product in page_obj %}
-                <div class="card mb-3">
-                    <div class="row g-0">
-                        <div class="col-md-3">
-                            <a href="{% url 'product_detail' product.slug %}">
+                    <div class="product-card">
+                        <div class="product-image-container">
+                            <a href="#" onclick="loadProductDetail('{{ product.id }}'); return false;">
                                 {% if product.main_image %}
-                                <img src="{{ product.main_image.url }}" class="img-fluid rounded-start" 
-                                     alt="{{ product.name }}" style="height: 200px; width: 100%; object-fit: cover;">
+                                <img src="{{ product.main_image.url }}" class="product-image" alt="{{ product.name }}">
                                 {% else %}
-                                <div class="bg-light d-flex align-items-center justify-content-center" 
-                                     style="height: 200px;">
+                                <div class="bg-light d-flex align-items-center justify-content-center h-100">
                                     <i class="fas fa-image fa-3x text-muted"></i>
                                 </div>
                                 {% endif %}
                             </a>
+                            
+                            <!-- Discount Badge -->
+                            {% if product.get_discount_percentage %}
+                            <div class="product-badge">
+                                <span class="badge-discount">-{{ product.get_discount_percentage }}%</span>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Stock Badge -->
+                            {% if not product.is_in_stock %}
+                            <div class="product-badge" style="top: 50px;">
+                                <span class="badge-out-of-stock">Out of Stock</span>
+                            </div>
+                            {% elif product.get_available_quantity <= product.low_stock_threshold %}
+                            <div class="product-badge" style="top: 50px;">
+                                <span class="badge-out-of-stock">Low Stock</span>
+                            </div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-9">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h5 class="card-title">
-                                            <a href="{% url 'product_detail' product.slug %}" 
-                                               class="text-decoration-none text-dark">
-                                                {{ product.name }}
-                                            </a>
-                                        </h5>
-                                        <p class="card-text text-muted small mb-2">
-                                            {{ product.short_description|truncatechars:150 }}
-                                        </p>
-                                        <div class="mb-2">
-                                            <span class="product-vendor">
-                                                Sold by: 
-                                                <a href="#">{{ product.vendor.vendorprofile.business_name|default:product.vendor.username }}</a>
-                                            </span>
-                                        </div>
-                                        <div class="product-rating mb-2">
-                                            {% for i in "12345"|make_list %}
-                                                {% if forloop.counter <= product.average_rating %}
-                                                    <i class="fas fa-star"></i>
-                                                {% else %}
-                                                    <i class="far fa-star"></i>
-                                                {% endif %}
-                                            {% endfor %}
-                                            <span class="text-muted ms-2">({{ product.reviews.count }})</span>
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="product-price mb-2">
-                                            {{ product.price }} RWF
-                                            {% if product.compare_at_price %}
-                                            <span class="product-old-price">
-                                                {{ product.compare_at_price }} RWF
-                                            </span>
-                                            {% endif %}
-                                        </div>
-                                        
-                                        {% if product.get_discount_percentage %}
-                                        <div class="badge-discount mb-2">
-                                            -{{ product.get_discount_percentage }}%
-                                        </div>
-                                        {% endif %}
-                                        
-                                        {% if product.is_in_stock %}
-                                            {% if product.get_available_quantity <= product.low_stock_threshold %}
-                                                <span class="stock-badge stock-low">
-                                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                                    Only {{ product.get_available_quantity }} left
-                                                </span>
-                                            {% else %}
-                                                <span class="stock-badge stock-in">
-                                                    <i class="fas fa-check-circle me-1"></i>
-                                                    In Stock
-                                                </span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="stock-badge stock-out">
-                                                <i class="fas fa-times-circle me-1"></i>
-                                                Out of Stock
-                                            </span>
-                                        {% endif %}
-                                        
-                                        <div class="mt-3">
-                                            <a href="{% url 'product_detail' product.slug %}" 
-                                               class="btn btn-magenta btn-sm">
-                                                <i class="fas fa-eye me-1"></i> View Details
-                                            </a>
-                                        </div>
-                                    </div>
+                        
+                        <div class="card-body">
+                            <h6 class="card-title mb-2">
+                                <a href="#" onclick="loadProductDetail('{{ product.id }}'); return false;" 
+                                   class="text-decoration-none text-dark">
+                                    {{ product.name|truncatechars:40 }}
+                                </a>
+                            </h6>
+                            
+                            <div class="product-vendor mb-2">
+                                <small>
+                                    <i class="fas fa-store"></i> 
+                                    {{ product.vendor.vendorprofile.business_name|default:product.vendor.username }}
+                                </small>
+                            </div>
+                            
+                            <div class="product-price mb-2">
+                                {{ product.price }} RWF
+                                {% if product.compare_at_price %}
+                                <span class="product-old-price">
+                                    {{ product.compare_at_price }} RWF
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if product.is_in_stock %}
+                                {% if product.get_available_quantity <= product.low_stock_threshold %}
+                                <div class="stock-badge stock-low mb-3">
+                                    Only {{ product.get_available_quantity }} left
                                 </div>
+                                {% else %}
+                                <div class="stock-badge stock-in mb-3">
+                                    In Stock
+                                </div>
+                                {% endif %}
+                            {% else %}
+                            <div class="stock-badge stock-out mb-3">
+                                Out of Stock
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button class="btn btn-magenta btn-sm" onclick="loadProductDetail('{{ product.id }}')">
+                                    <i class="fas fa-eye me-1"></i> View Details
+                                </button>
+                                {% if user.is_authenticated and product.is_in_stock %}
+                                <button class="btn btn-outline-magenta btn-sm" onclick="addToCart('{{ product.id }}', 1)">
+                                    <i class="fas fa-cart-plus"></i>
+                                </button>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -498,22 +562,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // View toggle
     const gridViewBtn = document.getElementById('grid-view');
     const listViewBtn = document.getElementById('list-view');
-    const productsGrid = document.getElementById('products-grid');
-    const productsList = document.getElementById('products-list');
     
-    gridViewBtn.addEventListener('click', function() {
-        this.classList.add('active');
-        listViewBtn.classList.remove('active');
-        productsGrid.classList.remove('d-none');
-        productsList.classList.add('d-none');
-    });
-    
-    listViewBtn.addEventListener('click', function() {
-        this.classList.add('active');
-        gridViewBtn.classList.remove('active');
-        productsGrid.classList.add('d-none');
-        productsList.classList.remove('d-none');
-    });
+    if (gridViewBtn && listViewBtn) {
+        gridViewBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            listViewBtn.classList.remove('active');
+        });
+        
+        listViewBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            gridViewBtn.classList.remove('active');
+        });
+    }
     
     // Price range validation
     const minPrice = document.getElementById('{{ search_form.min_price.id_for_label }}');
@@ -530,6 +590,239 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Minimum price cannot be greater than maximum price');
             }
         });
+    }
+});
+
+// Function to load product details in overlay
+function loadProductDetail(productId) {
+    const overlay = document.getElementById('productDetailOverlay');
+    
+    // Show loading state
+    overlay.innerHTML = `
+        <div class="product-detail-container">
+            <button class="close-detail-btn" onclick="closeProductDetail()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 6cm);">
+                <div class="spinner-border text-magenta" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    `;
+    overlay.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Fetch product details via AJAX
+    fetch(`/api/${productId}/availability/`)
+        .then(response => response.json())
+        .then(stockData => {
+            // Now fetch product details from your API
+            fetch(`/api/product-detail/${productId}/`)
+                .then(response => response.json())
+                .then(productData => {
+                    if (productData.success) {
+                        overlay.innerHTML = generateProductDetailHTML(productData.product, stockData);
+                    } else {
+                        // Fallback: redirect to product detail page
+                        window.location.href = `/product/${productId}/`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Product detail error:', error);
+                    // Fallback: redirect to product detail page
+                    window.location.href = `/product/${productId}/`;
+                });
+        })
+        .catch(error => {
+            console.error('Stock check error:', error);
+            overlay.innerHTML = `
+                <div class="product-detail-container">
+                    <button class="close-detail-btn" onclick="closeProductDetail()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 6cm);">
+                        <div class="text-center p-5">
+                            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                            <h4>Network Error</h4>
+                            <p class="text-muted">Unable to load product details.</p>
+                            <button class="btn btn-magenta mt-3" onclick="closeProductDetail()">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+}
+
+// Function to generate product detail HTML for overlay
+function generateProductDetailHTML(product, stockData) {
+    return `
+        <div class="product-detail-container">
+            <button class="close-detail-btn" onclick="closeProductDetail()">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="p-4">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="overlay-product-image">
+                            ${product.main_image ? 
+                                `<img src="${product.main_image}" alt="${product.name}">` :
+                                `<div class="d-flex align-items-center justify-content-center h-100">
+                                    <i class="fas fa-image fa-6x text-muted"></i>
+                                </div>`
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6">
+                        <h2 class="fw-bold mb-3">${product.name}</h2>
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge bg-dark me-2">${product.category || 'Uncategorized'}</span>
+                            <span class="text-muted">
+                                <i class="fas fa-store"></i> ${product.vendor}
+                            </span>
+                        </div>
+                        
+                        <div class="overlay-price-section">
+                            <div class="d-flex align-items-center mb-2">
+                                <h3 class="overlay-current-price">${product.price} RWF</h3>
+                                ${product.compare_at_price ? 
+                                    `<span class="overlay-original-price">${product.compare_at_price} RWF</span>` : 
+                                    ''
+                                }
+                            </div>
+                            ${product.discount_percentage ? 
+                                `<div class="badge bg-magenta px-3 py-2">Save ${product.discount_percentage}%</div>` : 
+                                ''
+                            }
+                        </div>
+                        
+                        ${stockData.available ? 
+                            `<div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                ${stockData.available_quantity} items available
+                            </div>` :
+                            `<div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                ${stockData.message || 'Out of stock'}
+                            </div>`
+                        }
+                        
+                        <div class="mb-4">
+                            <h5 class="fw-bold mb-2">Description</h5>
+                            <p>${product.description || 'No description available.'}</p>
+                        </div>
+                        
+                        <div class="overlay-vendor-card">
+                            <h5 class="fw-bold mb-3">
+                                <i class="fas fa-store me-2"></i> Sold by ${product.vendor}
+                            </h5>
+                            <p class="text-muted mb-3">Trusted vendor on SokHub</p>
+                            <button class="btn btn-outline-dark" onclick="viewVendorProducts('${product.vendor}')">
+                                <i class="fas fa-store me-2"></i> View Vendor Store
+                            </button>
+                        </div>
+                        
+                        <div class="d-flex gap-3 mb-4">
+                            <button class="btn btn-magenta btn-lg flex-grow-1" onclick="addToCart('${product.id}', 1)">
+                                <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                            </button>
+                            <button class="btn btn-outline-magenta btn-lg" onclick="toggleWishlist('${product.id}')">
+                                <i class="far fa-heart"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <a href="/${product.slug}/" class="text-magenta">
+                                <i class="fas fa-external-link-alt me-2"></i> View Full Product Page
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to close product detail overlay
+function closeProductDetail() {
+    document.getElementById('productDetailOverlay').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Function to add product to cart
+function addToCart(productId, quantity) {
+    {% if user.is_authenticated %}
+    fetch('{% url "add_to_cart" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: quantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Product added to cart!');
+            closeProductDetail();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Network error. Please try again.');
+    });
+    {% else %}
+    window.location.href = "{% url 'login' %}?next={{ request.path }}";
+    {% endif %}
+}
+
+// Function to toggle wishlist
+function toggleWishlist(productId) {
+    {% if user.is_authenticated %}
+    fetch(`/api/${productId}/wishlist/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Wishlist updated!');
+        }
+    });
+    {% else %}
+    window.location.href = "{% url 'login' %}?next={{ request.path }}";
+    {% endif %}
+}
+
+// Function to view vendor products
+function viewVendorProducts(vendorName) {
+    window.location.href = `?q=${encodeURIComponent(vendorName)}`;
+}
+
+// Close overlay when clicking outside
+document.getElementById('productDetailOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeProductDetail();
+    }
+});
+
+// Escape key to close
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeProductDetail();
     }
 });
 </script>

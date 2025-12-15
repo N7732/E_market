@@ -2,21 +2,19 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Count, Avg, F,Sum
+from django.db.models import Q, Avg, F, Sum
 from django.core.paginator import Paginator
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse, HttpResponseForbidden
+from django.views.generic import ListView, DetailView
+from django.http import JsonResponse
 from django.db import transaction
 from django.views.decorators.http import require_POST
-import json
-
+from django.views.decorators.csrf import csrf_exempt
 
 from customer.Decorator import vendor_required, customer_required
 from .models import Product, Category, ProductReview, StockHistory
 from .form import ProductForm, ProductSearchForm, ProductReviewForm, StockAdjustmentForm
 
+# =========== PUBLIC VIEWS ===========
 class ProductListView(ListView):
     """Public product listing page"""
     model = Product
@@ -28,7 +26,7 @@ class ProductListView(ListView):
         queryset = Product.objects.filter(
             status='active', 
             is_available=True
-        ).select_related('vendor', 'category').prefetch_related('images')
+        ).select_related('vendor', 'category')
         
         # Apply search filters
         form = ProductSearchForm(self.request.GET)
@@ -45,8 +43,7 @@ class ProductListView(ListView):
                     Q(name__icontains=q) |
                     Q(description__icontains=q) |
                     Q(short_description__icontains=q) |
-                    Q(category__name__icontains=q) |
-                    Q(tags__name__icontains=q)
+                    Q(category__name__icontains=q)
                 ).distinct()
             
             if category:
@@ -102,7 +99,9 @@ class ProductDetailView(DetailView):
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
         # Increment view count
-        obj.increment_view_count()
+        obj.view_count = F('view_count') + 1
+        obj.save(update_fields=['view_count'])
+        obj.refresh_from_db()
         return obj
     
     def get_context_data(self, **kwargs):
@@ -119,33 +118,84 @@ class ProductDetailView(DetailView):
         # Get approved reviews
         reviews = product.reviews.filter(is_approved=True).select_related('customer')
         
-        # Review form for authenticated customers
-        review_form = None
-        if self.request.user.is_authenticated and self.request.user.user_type == 'customer':
-            # Check if user has already reviewed
-            has_reviewed = reviews.filter(customer=self.request.user).exists()
-            if not has_reviewed:
-                review_form = ProductReviewForm(
-                    product=product,
-                    customer=self.request.user
-                )
-        
         context.update({
             'related_products': related_products,
             'reviews': reviews,
-            'review_form': review_form,
             'has_reviewed': reviews.filter(customer=self.request.user).exists() if self.request.user.is_authenticated else False,
             'can_review': self.request.user.is_authenticated and 
                          self.request.user.user_type == 'customer' and
                          not reviews.filter(customer=self.request.user).exists(),
+            'rating_range': range(5, 0, -1),  # [5, 4, 3, 2, 1]
         })
         return context
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['rating_range'] = range(5, 0, -1)  # [5, 4, 3, 2, 1]
-        return context
 
+def category_detail(request, slug):
+    """Category page with products"""
+    category = get_object_or_404(Category, slug=slug, is_active=True)
+    
+    # Get products in this category and subcategories
+    subcategories = category.get_all_children()
+    category_ids = [category.id] + [c.id for c in subcategories]
+    
+    products = Product.objects.filter(
+        category_id__in=category_ids,
+        status='active',
+        is_available=True
+    ).select_related('vendor', 'category')
+    
+    # Apply sorting
+    sort_by = request.GET.get('sort', 'newest')
+    if sort_by == 'price_low':
+        products = products.order_by('price')
+    elif sort_by == 'price_high':
+        products = products.order_by('-price')
+    elif sort_by == 'popular':
+        products = products.order_by('-purchase_count')
+    else:  # newest
+        products = products.order_by('-published_at', '-created_at')
+    
+    # Pagination
+    paginator = Paginator(products, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'category': category,
+        'page_obj': page_obj,
+        'sort_by': sort_by,
+        'subcategories': subcategories,
+    }
+    
+    return render(request, 'products/category_detail.html', context)
+
+# =========== CUSTOMER VIEWS ===========
+@login_required
+@customer_required
+def add_product_review(request, pk):
+    """Customer adds a product review"""
+    product = get_object_or_404(Product, pk=pk, status='active')
+    
+    # Check if user has already reviewed
+    if product.reviews.filter(customer=request.user).exists():
+        messages.error(request, 'You have already reviewed this product.')
+        return redirect('product_detail', slug=product.slug)
+    
+    if request.method == 'POST':
+        form = ProductReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.product = product
+            review.customer = request.user
+            review.save()
+            
+            messages.success(request, 'Thank you for your review!')
+            return redirect('product_detail', slug=product.slug)
+    else:
+        form = ProductReviewForm()
+    
+    return render(request, 'products/add_review.html', {'form': form, 'product': product})
+
+# =========== VENDOR VIEWS ===========
 @login_required
 @vendor_required
 def vendor_product_list(request):
@@ -175,18 +225,12 @@ def vendor_product_list(request):
     total_products = products.count()
     active_products = products.filter(status='active').count()
     out_of_stock = products.filter(status='out_of_stock').count()
-    low_stock = products.filter(
-        is_track_inventory=True,
-        quantity__lte=F('low_stock_threshold'),
-        quantity__gt=0
-    ).count()
     
     context = {
         'page_obj': page_obj,
         'total_products': total_products,
         'active_products': active_products,
         'out_of_stock': out_of_stock,
-        'low_stock': low_stock,
         'status_filter': status_filter,
         'search_query': search_query,
     }
@@ -198,17 +242,15 @@ def vendor_product_list(request):
 def vendor_add_product(request):
     """Vendor add product form"""
     if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES, vendor=request.user)
+        form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
-            # category_name = form.cleaned_data["category"]
-            # category, created = Category.objects.get_or_create(name=category_name)
-            # product = form.save(commit=False)
-            # product.category = category
-            product = form.save()
-            messages.success(request, f'Product "{product.name}" added successfully! It will be reviewed before going live.')
+            product = form.save(commit=False)
+            product.vendor = request.user
+            product.save()
+            messages.success(request, f'Product "{product.name}" added successfully!')
             return redirect('vendor_product_list')
     else:
-        form = ProductForm(vendor=request.user)
+        form = ProductForm()
     
     return render(request, 'vendor/add_product.html', {'form': form})
 
@@ -219,13 +261,13 @@ def vendor_edit_product(request, pk):
     product = get_object_or_404(Product, pk=pk, vendor=request.user)
     
     if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES, instance=product, vendor=request.user)
+        form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
             product = form.save()
             messages.success(request, f'Product "{product.name}" updated successfully!')
             return redirect('vendor_product_list')
     else:
-        form = ProductForm(instance=product, vendor=request.user)
+        form = ProductForm(instance=product)
     
     return render(request, 'vendor/edit_product.html', {'form': form, 'product': product})
 
@@ -256,39 +298,40 @@ def vendor_stock_management(request, pk):
             quantity = form.cleaned_data['quantity']
             notes = form.cleaned_data['notes']
             
-            with transaction.atomic():
-                if adjustment_type == 'add':
-                    product.restock(quantity)
-                    action = 'adjustment'
-                    quantity_change = quantity
-                elif adjustment_type == 'remove':
-                    if product.quantity >= quantity:
-                        product.quantity = F('quantity') - quantity
-                        product.save()
-                        action = 'adjustment'
-                        quantity_change = -quantity
-                    else:
-                        messages.error(request, 'Cannot remove more stock than available.')
-                        return redirect('vendor_stock_management', pk=pk)
-                else:  # set
+            try:
+                with transaction.atomic():
                     old_quantity = product.quantity
-                    product.quantity = quantity
+                    
+                    if adjustment_type == 'add':
+                        product.quantity += quantity
+                        quantity_change = quantity
+                    elif adjustment_type == 'remove':
+                        if product.quantity >= quantity:
+                            product.quantity -= quantity
+                            quantity_change = -quantity
+                        else:
+                            messages.error(request, 'Cannot remove more stock than available.')
+                            return redirect('vendor_stock_management', pk=pk)
+                    else:  # set
+                        quantity_change = quantity - old_quantity
+                        product.quantity = quantity
+                    
                     product.save()
-                    action = 'adjustment'
-                    quantity_change = quantity - old_quantity
-                
-                # Create stock history
-                StockHistory.objects.create(
-                    product=product,
-                    action=action,
-                    quantity_change=quantity_change,
-                    new_quantity=product.quantity,
-                    notes=notes,
-                    performed_by=request.user
-                )
-                
-                messages.success(request, f'Stock updated successfully!')
-                return redirect('vendor_product_list')
+                    
+                    # Create stock history
+                    StockHistory.objects.create(
+                        product=product,
+                        action='adjustment',
+                        quantity_change=quantity_change,
+                        new_quantity=product.quantity,
+                        notes=notes,
+                        performed_by=request.user
+                    )
+                    
+                    messages.success(request, 'Stock updated successfully!')
+                    return redirect('vendor_product_list')
+            except Exception as e:
+                messages.error(request, f'Error updating stock: {str(e)}')
     else:
         form = StockAdjustmentForm()
     
@@ -304,86 +347,28 @@ def vendor_stock_management(request, pk):
     return render(request, 'vendor/stock_management.html', context)
 
 @login_required
-@customer_required
-def add_product_review(request, pk):
-    """Customer adds a product review"""
-    product = get_object_or_404(Product, pk=pk, status='active')
+@vendor_required
+def vendor_analytics(request):
+    """Vendor analytics dashboard"""
+    # Aggregate sales data
+    products = Product.objects.filter(vendor=request.user)
     
-    # Check if user has already reviewed
-    if product.reviews.filter(customer=request.user).exists():
-        messages.error(request, 'You have already reviewed this product.')
-        return redirect('product_detail', slug=product.slug)
+    total_sales = products.aggregate(
+        total_revenue=Sum(F('price') * F('purchase_count'), default=0),
+        total_orders=Sum('purchase_count', default=0),
+        average_rating=Avg('average_rating', default=0)
+    )
     
-    if request.method == 'POST':
-        form = ProductReviewForm(request.POST, product=product, customer=request.user)
-        if form.is_valid():
-            review = form.save(commit=False)
-            
-            # Check if customer has purchased the product (for verified purchase)
-            # This would query the orders app
-            review.is_verified_purchase = False  # Implement order check
-            
-            review.save()
-            messages.success(request, 'Thank you for your review! It will be visible after approval.')
-            return redirect('product_detail', slug=product.slug)
-    else:
-        form = ProductReviewForm(product=product, customer=request.user)
-    
-    return render(request, 'products/add_review.html', {'form': form, 'product': product})
-
-@require_POST
-@login_required
-def toggle_wishlist(request, pk):
-    """Add/remove product from wishlist"""
-    if request.user.user_type != 'customer':
-        return JsonResponse({'error': 'Only customers can use wishlist'}, status=403)
-    
-    product = get_object_or_404(Product, pk=pk)
-    
-    # This would use a Wishlist model
-    # For now, return success
-    return JsonResponse({'success': True})
-
-def category_detail(request, slug):
-    """Category page with products"""
-    category = get_object_or_404(Category, slug=slug, is_active=True)
-    
-    # Get products in this category and subcategories
-    subcategories = category.get_all_children()
-    category_ids = [category.id] + [c.id for c in subcategories]
-    
-    products = Product.objects.filter(
-        category_id__in=category_ids,
-        status='active',
-        is_available=True
-    ).select_related('vendor', 'category').prefetch_related('images')
-    
-    # Apply sorting
-    sort_by = request.GET.get('sort', 'newest')
-    if sort_by == 'price_low':
-        products = products.order_by('price')
-    elif sort_by == 'price_high':
-        products = products.order_by('-price')
-    elif sort_by == 'popular':
-        products = products.order_by('-purchase_count')
-    else:  # newest
-        products = products.order_by('-published_at', '-created_at')
-    
-    # Pagination
-    paginator = Paginator(products, 12)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    top_selling_products = products.order_by('-purchase_count')[:5]
     
     context = {
-        'category': category,
-        'page_obj': page_obj,
-        'sort_by': sort_by,
-        'subcategories': subcategories,
+        'total_sales': total_sales,
+        'top_selling_products': top_selling_products,
     }
-    
-    return render(request, 'products/category_detail.html', context)
+    return render(request, 'vendor/analytics.html', context)
 
-# API Views for AJAX
+# =========== API ENDPOINTS ===========
+@csrf_exempt
 def product_availability_check(request, pk):
     """Check product availability (for AJAX)"""
     product = get_object_or_404(Product, pk=pk)
@@ -391,50 +376,103 @@ def product_availability_check(request, pk):
     data = {
         'available': product.is_in_stock(),
         'available_quantity': product.get_available_quantity(),
-        'allow_backorder': product.allow_backorder,
+        'allow_backorder': getattr(product, 'allow_backorder', False),
         'message': ''
     }
     
     if not data['available']:
-        if product.allow_backorder:
+        if data['allow_backorder']:
             data['message'] = 'Available for backorder'
         else:
             data['message'] = 'Out of stock'
     
     return JsonResponse(data)
 
+@csrf_exempt
 @require_POST
 @login_required
 def reserve_stock(request, pk):
     """Reserve stock for cart (for AJAX)"""
     product = get_object_or_404(Product, pk=pk)
-    quantity = int(request.POST.get('quantity', 1))
     
-    if quantity <= 0:
-        return JsonResponse({'success': False, 'error': 'Invalid quantity'})
-    
-    if product.reserve_stock(quantity):
-        return JsonResponse({'success': True})
-    else:
-        return JsonResponse({
-            'success': False, 
-            'error': 'Not enough stock available',
-            'available': product.get_available_quantity()
-        })
+    try:
+        quantity = int(request.POST.get('quantity', 1))
+        if quantity <= 0:
+            return JsonResponse({'success': False, 'error': 'Invalid quantity'})
+        
+        # Simple stock reservation logic
+        if product.is_in_stock() and quantity <= product.get_available_quantity():
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Not enough stock available',
+                'available': product.get_available_quantity()
+            })
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Invalid quantity format'})
 
-def vendor_analytics(request):
-    """Vendor analytics dashboard"""
-    if not request.user.is_authenticated or request.user.user_type != 'vendor':
-        return HttpResponseForbidden("You do not have permission to access this page.")
-    # Aggregate sales data
-    total_sales = Product.objects.filter(vendor=request.user).aggregate(
-        total_revenue=Sum(F('price') * F('purchase_count')),
-        total_orders=Sum('purchase_count'),
-        average_rating=Avg('average_rating')
-    )
-    top_selling_products = Product.objects.filter(vendor=request.user).order_by('-purchase_count')[:5]
-    context = {
-        'total_sales': total_sales,
-        'top_selling_products': top_selling_products,
-    }
-    return render(request, 'vendor/analytics.html', context)
+@csrf_exempt
+@require_POST
+@login_required
+def toggle_wishlist(request, pk):
+    """Add/remove product from wishlist"""
+    product = get_object_or_404(Product, pk=pk)
+    
+    # Simple wishlist toggle logic
+    # You would need to implement Wishlist model
+    return JsonResponse({'success': True, 'message': 'Wishlist updated'})
+
+# =========== HELPER FUNCTIONS ===========
+def product_detail_api(request, product_id):
+    """API endpoint for product details (used in AJAX overlay) - OPTIONAL"""
+    try:
+        product = Product.objects.get(id=product_id, status='active', is_available=True)
+        
+        product_data = {
+            'id': product.id,
+            'slug': product.slug,
+            'name': product.name,
+            'price': str(product.price),
+            'compare_at_price': str(product.compare_at_price) if product.compare_at_price else None,
+            'category': product.category.name if product.category else 'Uncategorized',
+            'vendor': product.vendor.username,
+            'description': product.description or 'No description available.',
+            'main_image': product.main_image.url if product.main_image else '',
+            'is_in_stock': product.is_in_stock(),
+            'available_quantity': product.get_available_quantity(),
+            'average_rating': float(product.average_rating) if product.average_rating else 0,
+            'review_count': product.reviews.count(),
+        }
+        
+        return JsonResponse({'success': True, 'product': product_data})
+    except Product.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Product not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+# Add this to product/views.py
+@csrf_exempt
+def product_detail_api(request, product_id):
+    """API endpoint for product details overlay"""
+    try:
+        product = Product.objects.get(id=product_id, status='active', is_available=True)
+        
+        product_data = {
+            'id': product.id,
+            'slug': product.slug,
+            'name': product.name,
+            'price': str(product.price),
+            'compare_at_price': str(product.compare_at_price) if product.compare_at_price else None,
+            'category': product.category.name if product.category else 'Uncategorized',
+            'vendor': product.vendor.vendorprofile.business_name if hasattr(product.vendor, 'vendorprofile') and product.vendor.vendorprofile.business_name else product.vendor.username,
+            'description': product.description or 'No description available.',
+            'main_image': product.main_image.url if product.main_image else '',
+            'discount_percentage': product.get_discount_percentage() if hasattr(product, 'get_discount_percentage') else 0,
+        }
+        
+        return JsonResponse({'success': True, 'product': product_data})
+    except Product.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Product not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
