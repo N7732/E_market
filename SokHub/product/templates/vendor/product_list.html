@@ -223,6 +223,12 @@
                                        title="Stock">
                                         <i class="fas fa-box"></i>
                                     </a>
+                                    <form method="post" action="{% url 'vendor_toggle_product_status' product.pk %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-info" title="{% if product.status == 'active' %}Move to draft{% else %}Activate{% endif %}">
+                                            <i class="fas fa-toggle-on"></i>
+                                        </button>
+                                    </form>
                                     <a href="{% url 'vendor_delete_product' product.pk %}" 
                                        class="btn btn-outline-danger"
                                        title="Delete">

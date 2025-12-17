@@ -447,6 +447,7 @@ class Cart(models.Model):
     """Shopping cart for customers"""
     customer = models.OneToOneField('customer.User', on_delete=models.CASCADE, 
                                    related_name='cart', limit_choices_to={'user_type': 'customer'})
+    session_key = models.CharField(max_length=40, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -472,6 +473,7 @@ class CartItem(models.Model):
     product = models.ForeignKey('product.Product', on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1, validators=[MinValueValidator(1)])
     added_at = models.DateTimeField(auto_now_add=True)
+    #get_total_price = models.DecimalField(max_digits=10, decimal_places=2, editable=False,null=True,default=0.00)
     
     class Meta:
         unique_together = ['cart', 'product']
@@ -495,6 +497,10 @@ class CartItem(models.Model):
                 self.product.release_stock(abs(quantity_diff))
         
         super().save(*args, **kwargs)
+
+    def get_total_price(self):
+        return self.product.price * self.quantity
+    
     
     def delete(self, *args, **kwargs):
         # Release reserved stock when removing from cart

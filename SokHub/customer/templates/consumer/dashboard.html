@@ -1,362 +1,850 @@
 <!-- templates/customer/dashboard.html -->
 {% extends "base.html" %}
 
-{% block title %}Dashboard - SokHub{% endblock %}
+{% block title %}My Dashboard - SokHub{% endblock %}
 
 {% block extra_css %}
 <style>
     :root {
-        --customer-primary: #000000;
-        --customer-accent: #FF00FF;
-        --customer-dark: #0a0a0a;
-        --customer-light: #1a1a1a;
-        --customer-text: #ffffff;
+        --primary-white: #ffffff;
+        --secondary-white: #f8f9fa;
+        --accent-magenta: #FF00FF;
+        --accent-magenta-light: rgba(255, 0, 255, 0.05); /* Very subtle magenta */
+        --accent-dark: #1a1a1a;
+        --accent-gray: #f5f5f7;
+        --text-dark: #333333;
+        --text-medium: #666666;
+        --text-light: #888888;
+        --border-color: #e1e1e6;
+        --success-color: #34c759;
+        --warning-color: #ff9500;
+        --info-color: #007aff;
     }
     
     body {
-        background-color: var(--customer-dark);
-        color: var(--customer-text);
+        background-color: #fafafa; /* Very light gray background */
+        color: var(--text-dark);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
     }
     
-    .navbar, footer {
-        background-color: var(--customer-primary) !important;
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: transparent; /* Remove any container background */
     }
     
-    .card {
-        background-color: var(--customer-light);
-        border: 1px solid rgba(255, 0, 255, 0.2);
-        color: var(--customer-text);
+    /* Simple Card Design - Clean White */
+    .simple-card {
+        background: var(--primary-white);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        transition: all 0.3s ease;
+        height: 100%;
     }
     
-    .card-header {
-        background-color: rgba(255, 0, 255, 0.1);
-        border-bottom: 1px solid rgba(255, 0, 255, 0.3);
+    .simple-card:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border-color: #d1d1d6;
     }
     
-    .text-magenta {
-        color: var(--customer-accent) !important;
-    }
-    
-    .btn-magenta {
-        background: linear-gradient(135deg, var(--customer-accent), #cc00cc);
-        border: none;
-        color: white;
-    }
-    
-    .btn-magenta:hover {
-        background: linear-gradient(135deg, #cc00cc, var(--customer-accent));
-        color: white;
-    }
-    
-    .dashboard-stats {
-        background: linear-gradient(135deg, rgba(255, 0, 255, 0.1), rgba(0, 0, 0, 0.3));
-        border-radius: 15px;
+    /* Header Section - Clean Gradient */
+    .welcome-header {
+        background: linear-gradient(135deg, var(--primary-white), var(--accent-gray));
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
         padding: 30px;
         margin-bottom: 30px;
-        border: 1px solid rgba(255, 0, 255, 0.2);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
     
-    .stat-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
+    .welcome-header h1 {
+        color: var(--text-dark);
+        font-size: 28px;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    
+    .highlight {
+        color: var(--accent-magenta);
+        font-weight: 700;
+    }
+    
+    /* Stats Cards - Clean Design */
+    .stat-box {
+        text-align: center;
+        padding: 25px 20px;
+        background: var(--primary-white);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+    
+    .stat-number {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text-dark); /* Changed from magenta to dark for subtlety */
+        display: block;
+        margin-bottom: 8px;
+    }
+    
+    .stat-label {
+        color: var(--text-medium);
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+    
+    /* Simple Buttons - Subtle Magenta */
+    .btn-primary {
+        background-color: var(--accent-magenta);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(255,0,255,0.2);
+    }
+    
+    .btn-primary:hover {
+        background-color: #e000e0;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255,0,255,0.3);
+    }
+    
+    .btn-secondary {
+        background-color: transparent;
+        color: var(--text-dark);
+        border: 2px solid var(--border-color);
+        padding: 10px 22px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        font-size: 14px;
+    }
+    
+    .btn-secondary:hover {
+        background-color: var(--accent-magenta-light);
+        color: var(--accent-magenta);
+        border-color: var(--accent-magenta);
+    }
+    
+    .btn-small {
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    
+    /* Order Items */
+    .order-card {
+        background: var(--primary-white);
+        border-left: 4px solid var(--accent-magenta);
         padding: 20px;
-        transition: transform 0.3s;
-        border: 1px solid rgba(255, 0, 255, 0.1);
+        margin-bottom: 16px;
+        border-radius: 0 10px 10px 0;
+        border: 1px solid var(--border-color);
+        border-left: 4px solid var(--accent-magenta);
+        transition: all 0.3s ease;
     }
     
-    .stat-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--customer-accent);
+    .order-card:hover {
+        border-color: #d1d1d6;
+        transform: translateX(4px);
     }
     
-    .stat-icon {
+    .order-id {
+        color: var(--text-dark);
+        font-weight: 600;
+        font-size: 16px;
+    }
+    
+    .order-id span {
+        color: var(--accent-magenta);
+    }
+    
+    /* Status Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+    
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-processing { background: #d1ecf1; color: #0c5460; }
+    .status-delivered { background: #d4edda; color: #155724; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    
+    /* Profile Section - Clean */
+    .profile-avatar {
         width: 60px;
         height: 60px;
+        background: linear-gradient(135deg, #f5f5f7, #ffffff);
+        border: 2px solid var(--border-color);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 15px;
-        background: rgba(255, 0, 255, 0.1);
-        color: var(--customer-accent);
+        margin: 0 auto 12px;
+        color: var(--text-medium);
         font-size: 24px;
     }
     
-    .order-item {
-        border-left: 4px solid var(--customer-accent);
-        padding-left: 15px;
+    /* Info List */
+    .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0;
+    }
+    
+    .info-list li {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        color: var(--text-medium);
+    }
+    
+    .info-list li:last-child {
+        border-bottom: none;
+    }
+    
+    /* Quick Actions */
+    .quick-action {
+        text-align: center;
+        padding: 24px 20px;
+        background: var(--primary-white);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
         margin-bottom: 15px;
-        background: rgba(255, 255, 255, 0.03);
-        padding: 15px;
-        border-radius: 0 8px 8px 0;
+        text-decoration: none;
+        color: var(--text-dark);
+        display: block;
+        transition: all 0.3s ease;
     }
     
-    .badge-status {
-        padding: 5px 12px;
-        border-radius: 20px;
+    .quick-action:hover {
+        border-color: var(--accent-magenta);
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(255,0,255,0.1);
+    }
+    
+    .action-icon {
+        font-size: 28px;
+        color: var(--accent-magenta);
+        margin-bottom: 12px;
+        opacity: 0.9;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 50px 30px;
+        color: var(--text-medium);
+    }
+    
+    .empty-icon {
+        font-size: 56px;
+        color: var(--border-color);
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    /* Horizontal Sidebar Cards */
+    .horizontal-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-bottom: 30px;
+    }
+    
+    /* Compact Card Headers */
+    .card-header-compact {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid var(--border-color);
+    }
+    
+    .card-icon {
+        background: var(--accent-magenta-light);
+        color: var(--accent-magenta);
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        font-size: 18px;
+    }
+    
+    .card-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin: 0;
+    }
+    
+    /* Payment Info Compact */
+    .payment-method {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 16px;
+        background: var(--accent-gray);
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .payment-icon {
+        background: linear-gradient(135deg, var(--accent-magenta), #ff66ff);
+        color: white;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        font-size: 20px;
+    }
+    
+    .momo-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-dark);
+        text-align: center;
+        margin: 20px 0;
+        padding: 16px;
+        background: var(--accent-gray);
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        letter-spacing: 1px;
+    }
+    
+    .momo-number span {
+        color: var(--accent-magenta);
+    }
+    
+    /* Support Card Compact */
+    .support-options {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    
+    .support-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: var(--accent-gray);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text-dark);
+        font-size: 14px;
         font-weight: 500;
+        transition: all 0.3s ease;
     }
     
-    .status-pending { background-color: #ff9800; color: white; }
-    .status-processing { background-color: #2196f3; color: white; }
-    .status-delivered { background-color: #4caf50; color: white; }
-    .status-cancelled { background-color: #f44336; color: white; }
+    .support-btn:hover {
+        background: var(--accent-magenta-light);
+        border-color: var(--accent-magenta);
+        color: var(--accent-magenta);
+    }
+    
+    /* Responsive Grid */
+    @media (max-width: 1200px) {
+        .dashboard-container {
+            padding: 20px;
+        }
+        
+        .horizontal-cards {
+            gap: 20px;
+        }
+    }
+    
+    @media (max-width: 1024px) {
+        .horizontal-cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .welcome-header {
+            padding: 24px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        body {
+            background-color: var(--primary-white); /* White background on mobile */
+        }
+        
+        .dashboard-container {
+            padding: 16px;
+        }
+        
+        .welcome-header {
+            padding: 20px 16px;
+            margin-bottom: 24px;
+        }
+        
+        .welcome-header h1 {
+            font-size: 24px;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+        }
+        
+        .horizontal-cards {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .simple-card {
+            padding: 20px 16px;
+        }
+        
+        .order-card {
+            padding: 16px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .welcome-header {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .welcome-header > div {
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            margin: 8px 0;
+            text-align: center;
+        }
+        
+        .quick-action {
+            padding: 20px 16px;
+        }
+    }
+    
+    /* Focus States for Accessibility */
+    button:focus,
+    a:focus,
+    input:focus {
+        outline: 3px solid rgba(255, 0, 255, 0.3);
+        outline-offset: 2px;
+    }
+    
+    /* Section Title Styles */
+    .section-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-title i {
+        color: var(--accent-magenta);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="dashboard-container">
     <!-- Welcome Section -->
-    <div class="dashboard-stats">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="display-6 fw-bold">
-                    Welcome back, <span class="text-magenta">{{ user.username }}</span>!
-                </h1>
-                <p class="lead mb-0">
-                    <i class="fas fa-user-circle me-2 text-magenta"></i>
+    <div class="welcome-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div>
+                <h1>Welcome back, <span class="highlight">{{ user.username }}</span>!</h1>
+                <p style="color: var(--text-medium); margin: 8px 0 0 0; font-size: 16px;">
+                    <i class="fas fa-user-circle" style="color: var(--text-medium); margin-right: 8px;"></i>
                     Customer Dashboard
                 </p>
             </div>
-            <div class="col-md-4 text-md-end">
-                <div class="d-grid gap-2 d-md-block">
-                    <a href="{% url 'customer_profile' %}" class="btn btn-outline-magenta me-2">
-                        <i class="fas fa-user-edit me-1"></i> Edit Profile
-                    </a>
-                    <a href="#" class="btn btn-magenta">
-                        <i class="fas fa-shopping-cart me-1"></i> Start Shopping
-                    </a>
-                </div>
+            <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{% url 'customer_profile' %}" class="btn-secondary">
+                    <i class="fas fa-user-edit"></i> Edit Profile
+                </a>
+                <a href="#" class="btn-primary">
+                    <i class="fas fa-shopping-cart"></i> Start Shopping
+                </a>
             </div>
         </div>
     </div>
     
-    <!-- Quick Stats -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="stat-card text-center">
-                <div class="stat-icon mx-auto">
-                    <i class="fas fa-shopping-bag"></i>
-                </div>
-                <h3 class="fw-bold">0</h3>
-                <p class="text-muted mb-0">Total Orders</p>
-            </div>
+    <!-- Quick Stats - Simple Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div class="stat-box">
+            <span class="stat-number">0</span>
+            <span class="stat-label">Total Orders</span>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="stat-card text-center">
-                <div class="stat-icon mx-auto">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <h3 class="fw-bold">0</h3>
-                <p class="text-muted mb-0">Pending Orders</p>
-            </div>
+        <div class="stat-box">
+            <span class="stat-number">0</span>
+            <span class="stat-label">Pending Orders</span>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="stat-card text-center">
-                <div class="stat-icon mx-auto">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <h3 class="fw-bold">0</h3>
-                <p class="text-muted mb-0">Completed Orders</p>
-            </div>
+        <div class="stat-box">
+            <span class="stat-number">0</span>
+            <span class="stat-label">Completed Orders</span>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="stat-card text-center">
-                <div class="stat-icon mx-auto">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <h3 class="fw-bold">0 RWF</h3>
-                <p class="text-muted mb-0">Total Spent</p>
-            </div>
+        <div class="stat-box">
+            <span class="stat-number">0 RWF</span>
+            <span class="stat-label">Total Spent</span>
         </div>
     </div>
     
-    <div class="row">
-        <!-- Recent Orders -->
-        <div class="col-lg-8 mb-4">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history me-2 text-magenta"></i> Recent Orders
-                    </h5>
-                    <a href="#" class="btn btn-sm btn-outline-magenta">View All</a>
+    <!-- HORIZONTAL CARDS: Profile, Payment, Help -->
+    <div class="horizontal-cards">
+        <!-- Profile Card -->
+        <div class="simple-card">
+            <div class="card-header-compact">
+                <div class="card-icon">
+                    <i class="fas fa-user-circle"></i>
                 </div>
-                <div class="card-body">
-                    {% if recent_orders %}
-                        {% for order in recent_orders %}
-                        <div class="order-item">
-                            <div class="row align-items-center">
-                                <div class="col-md-3">
-                                    <strong class="text-magenta">#{{ order.id }}</strong>
-                                    <p class="mb-0 small">{{ order.created_at|date:"M d, Y" }}</p>
-                                </div>
-                                <div class="col-md-4">
-                                    <p class="mb-0">{{ order.items.count }} item(s)</p>
-                                    <p class="mb-0 small text-muted">Vendor: {{ order.vendor.business_name }}</p>
-                                </div>
-                                <div class="col-md-2">
-                                    <span class="badge-status status-{{ order.status|lower }}">
-                                        {{ order.status }}
-                                    </span>
-                                </div>
-                                <div class="col-md-3 text-end">
-                                    <strong>{{ order.total_amount }} RWF</strong>
-                                    <div class="mt-2">
-                                        <a href="#" class="btn btn-sm btn-outline-magenta">
-                                            <i class="fas fa-eye me-1"></i> View
-                                        </a>
-                                        <a href="#" class="btn btn-sm btn-magenta">
-                                            <i class="fas fa-download me-1"></i> PDF
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No orders yet</h5>
-                            <p class="text-muted">Start shopping to see your orders here</p>
-                            <a href="#" class="btn btn-magenta">Browse Products</a>
-                        </div>
-                    {% endif %}
-                </div>
+                <h3 class="card-title">Your Profile</h3>
             </div>
             
-            <!-- Quick Actions -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-bolt me-2 text-magenta"></i> Quick Actions
-                    </h5>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div class="profile-avatar">
+                    <i class="fas fa-user"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <a href="#" class="btn btn-outline-magenta w-100 py-3">
-                                <i class="fas fa-search fa-2x mb-2"></i><br>
-                                Browse Products
-                            </a>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <a href="{% url 'customer_profile' %}" class="btn btn-outline-magenta w-100 py-3">
-                                <i class="fas fa-edit fa-2x mb-2"></i><br>
-                                Update Profile
-                            </a>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <a href="{% url 'account_settings' %}" class="btn btn-outline-magenta w-100 py-3">
-                                <i class="fas fa-cog fa-2x mb-2"></i><br>
-                                Account Settings
-                            </a>
-                        </div>
-                    </div>
+                <h4 style="margin: 8px 0 4px 0; font-size: 17px; font-weight: 600; color: var(--text-dark);">
+                    {{ user.get_full_name|default:user.username }}
+                </h4>
+                <div style="color: var(--text-medium); font-size: 14px; margin-bottom: 4px;">
+                    <i class="fas fa-envelope" style="margin-right: 6px;"></i> 
+                    {{ user.email|truncatechars:20 }}
                 </div>
+                {% if user.phone %}
+                <div style="color: var(--text-medium); font-size: 14px;">
+                    <i class="fas fa-phone" style="margin-right: 6px;"></i> 
+                    {{ user.phone }}
+                </div>
+                {% endif %}
             </div>
+            
+            <ul class="info-list">
+                <li>
+                    <span>Joined:</span>
+                    <strong style="color: var(--text-dark);">{{ user.date_joined|date:"M Y" }}</strong>
+                </li>
+                <li>
+                    <span>Account Type:</span>
+                    <strong style="color: var(--accent-magenta);">Customer</strong>
+                </li>
+                <li>
+                    <span>Email Verified:</span>
+                    <strong style="color: {% if user.is_email_verified %}var(--success-color){% else %}var(--warning-color){% endif %};">
+                        {% if user.is_email_verified %}Verified{% else %}Pending{% endif %}
+                    </strong>
+                </li>
+            </ul>
+            
+            <a href="{% url 'customer_profile' %}" class="btn-secondary" style="display: block; text-align: center; margin-top: 20px; padding: 10px;">
+                <i class="fas fa-edit" style="margin-right: 6px;"></i> Edit Profile
+            </a>
         </div>
         
-        <!-- Right Sidebar -->
-        <div class="col-lg-4">
-            <!-- Profile Summary -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-user-circle me-2 text-magenta"></i> Profile Summary
-                    </h5>
+        <!-- Payment Card -->
+        <div class="simple-card">
+            <div class="card-header-compact">
+                <div class="card-icon">
+                    <i class="fas fa-credit-card"></i>
                 </div>
-                <div class="card-body">
-                    <div class="text-center mb-4">
-                        <div class="avatar-placeholder mx-auto mb-3" style="width: 80px; height: 80px; background: rgba(255, 0, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--customer-accent);">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <h5>{{ user.get_full_name|default:user.username }}</h5>
-                        <p class="text-muted mb-0">
-                            <i class="fas fa-envelope me-1"></i> {{ user.email }}
-                        </p>
-                        <p class="text-muted">
-                            <i class="fas fa-phone me-1"></i> {{ user.phone }}
-                        </p>
-                    </div>
-                    
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-secondary">
-                            <span>Member Since</span>
-                            <strong>{{ user.date_joined|date:"M Y" }}</strong>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-secondary">
-                            <span>Account Type</span>
-                            <strong class="text-magenta">Customer</strong>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-secondary">
-                            <span>Email Verified</span>
-                            <strong class="{% if user.is_email_verified %}text-success{% else %}text-warning{% endif %}">
-                                {% if user.is_email_verified %}Yes{% else %}No{% endif %}
-                            </strong>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <a href="{% url 'customer_profile' %}" class="btn btn-magenta w-100">
-                            <i class="fas fa-edit me-1"></i> Edit Profile
-                        </a>
-                    </div>
+                <h3 class="card-title">Payment Method</h3>
+            </div>
+            
+            <div class="payment-method">
+                <div class="payment-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 600; font-size: 15px; color: var(--text-dark);">MTN Momo</div>
+                    <div style="color: var(--text-medium); font-size: 13px;">Default payment method</div>
                 </div>
             </div>
             
-            <!-- Payment Info -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-credit-card me-2 text-magenta"></i> Payment Method
-                    </h5>
+            {% if customer_profile.default_momo_number %}
+            <div class="momo-number">
+                {{ customer_profile.default_momo_number }}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 24px; color: var(--text-medium); background: var(--accent-gray); border-radius: 10px; margin: 20px 0;">
+                <i class="fas fa-plus-circle" style="font-size: 28px; margin-bottom: 12px; color: var(--text-light);"></i>
+                <div style="font-weight: 500;">No payment method added</div>
+                <div style="font-size: 13px; margin-top: 4px;">Add your Momo number for faster checkout</div>
+            </div>
+            {% endif %}
+            
+            <a href="#" class="btn-secondary" style="display: block; text-align: center; padding: 10px;">
+                <i class="fas fa-edit" style="margin-right: 6px;"></i> Update Payment
+            </a>
+        </div>
+        
+        <!-- Help Card -->
+        <div class="simple-card">
+            <div class="card-header-compact">
+                <div class="card-icon">
+                    <i class="fas fa-headset"></i>
                 </div>
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary rounded p-2 me-3">
-                            <i class="fas fa-mobile-alt fa-2x text-white"></i>
-                        </div>
+                <h3 class="card-title">Need Help?</h3>
+            </div>
+            
+            <p style="color: var(--text-medium); font-size: 15px; line-height: 1.5; margin-bottom: 20px;">
+                Our support team is ready to assist you with any questions or issues you may have.
+            </p>
+            
+            <div class="support-options">
+                <a href="{% url 'contact' %}" class="support-btn">
+                    <i class="fas fa-envelope"></i> Contact Support
+                </a>
+                <a href="#" class="support-btn">
+                    <i class="fas fa-question-circle"></i> FAQ Center
+                </a>
+                <a href="#" class="support-btn">
+                    <i class="fas fa-comments"></i> Live Chat
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Area -->
+    <div>
+        <!-- Recent Orders -->
+        <div class="simple-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 class="section-title">
+                    <i class="fas fa-history"></i>
+                    Recent Orders
+                </h2>
+                <a href="#" class="btn-secondary btn-small">View All Orders</a>
+            </div>
+            
+            {% if recent_orders %}
+                {% for order in recent_orders %}
+                <div class="order-card">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; align-items: center;">
                         <div>
-                            <h6 class="mb-0">MTN Momo</h6>
-                            <p class="text-muted mb-0">Default payment method</p>
+                            <div class="order-id">Order #<span>{{ order.id }}</span></div>
+                            <div style="color: var(--text-medium); font-size: 14px; margin-top: 4px;">
+                                <i class="far fa-calendar" style="margin-right: 6px;"></i>
+                                {{ order.created_at|date:"M d, Y" }}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-dark);">{{ order.items.count }} item(s)</div>
+                            <div style="color: var(--text-medium); font-size: 14px; margin-top: 4px;">
+                                <i class="fas fa-store" style="margin-right: 6px;"></i>
+                                {{ order.vendor.business_name|truncatechars:20 }}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <span class="status-badge status-{{ order.status|lower }}">
+                                {{ order.status }}
+                            </span>
+                        </div>
+                        
+                        <div style="text-align: right;">
+                            <div style="font-weight: 700; font-size: 18px; color: var(--text-dark);">
+                                {{ order.total_amount }} RWF
+                            </div>
+                            <div style="margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end;">
+                                <a href="#" class="btn-secondary btn-small">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="#" class="btn-primary btn-small">
+                                    <i class="fas fa-download"></i> Invoice
+                                </a>
+                            </div>
                         </div>
                     </div>
-                    
-                    {% if customer_profile.default_momo_number %}
-                    <div class="alert alert-dark">
-                        <p class="mb-1"><strong>Your Momo Number:</strong></p>
-                        <h4 class="text-magenta mb-0">{{ customer_profile.default_momo_number }}</h4>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="text-center">
-                        <a href="#" class="btn btn-outline-magenta btn-sm">
-                            <i class="fas fa-edit me-1"></i> Update Payment
-                        </a>
-                    </div>
                 </div>
-            </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h3 style="color: var(--text-dark); margin-bottom: 12px; font-size: 20px;">No orders yet</h3>
+                    <p style="color: var(--text-medium); margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                        Start shopping to see your orders here. Browse our collection of products and make your first purchase!
+                    </p>
+                    <a href="#" class="btn-primary" style="padding: 12px 32px;">
+                        <i class="fas fa-search" style="margin-right: 8px;"></i> Browse Products
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="simple-card">
+            <h2 class="section-title" style="margin-bottom: 24px;">
+                <i class="fas fa-bolt"></i>
+                Quick Actions
+            </h2>
             
-            <!-- Support Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-headset me-2 text-magenta"></i> Need Help?
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="mb-3">Our support team is here to help you with any questions or issues.</p>
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'contact' %}" class="btn btn-outline-magenta">
-                            <i class="fas fa-envelope me-1"></i> Contact Support
-                        </a>
-                        <a href="#" class="btn btn-outline-magenta">
-                            <i class="fas fa-question-circle me-1"></i> FAQ
-                        </a>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
+                <a href="#" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-search"></i>
                     </div>
-                </div>
+                    <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 4px;">Browse Products</div>
+                    <div style="color: var(--text-medium); font-size: 13px;">Shop our collection</div>
+                </a>
+                
+                <a href="{% url 'customer_profile' %}" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                    <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 4px;">Update Profile</div>
+                    <div style="color: var(--text-medium); font-size: 13px;">Edit personal details</div>
+                </a>
+                
+                <a href="{% url 'account_settings' %}" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 4px;">Account Settings</div>
+                    <div style="color: var(--text-medium); font-size: 13px;">Security & preferences</div>
+                </a>
+                
+                <a href="{% url 'cart' %}" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 4px;">My Cart</div>
+                    <div style="color: var(--text-medium); font-size: 13px;">View shopping cart</div>
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Simple JavaScript for basic interactions -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add subtle hover effects to all interactive elements
+        const interactiveElements = document.querySelectorAll('.btn-primary, .btn-secondary, .support-btn, .quick-action');
+        
+        interactiveElements.forEach(element => {
+            // Add click animation
+            element.addEventListener('click', function(e) {
+                if (this.tagName === 'A' && this.getAttribute('href') === '#') {
+                    e.preventDefault();
+                }
+                
+                // Create ripple effect
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    border-radius: 50%;
+                    background: rgba(255, 0, 255, 0.15);
+                    transform: scale(0);
+                    animation: ripple 0.6s ease-out;
+                    width: ${size}px;
+                    height: ${size}px;
+                    top: ${y}px;
+                    left: ${x}px;
+                    pointer-events: none;
+                    z-index: 1;
+                `;
+                
+                this.style.position = 'relative';
+                this.style.overflow = 'hidden';
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    if (ripple.parentNode === this) {
+                        this.removeChild(ripple);
+                    }
+                }, 600);
+            });
+        });
+        
+        // Add keyboard navigation support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const focused = document.activeElement;
+                if (focused.classList.contains('quick-action') || 
+                    focused.classList.contains('support-btn')) {
+                    focused.click();
+                }
+            }
+        });
+    });
+    
+    // Add CSS for animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .simple-card {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .stat-box {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        .horizontal-cards > div {
+            animation: fadeIn 0.7s ease-out;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
 {% endblock %}

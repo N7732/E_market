@@ -165,12 +165,9 @@ def register(request):
     """
     if request.user.is_authenticated:
         return redirect_user_by_role(request.user)
-
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            # Temporarily disconnect the post_save signal handlers that create profiles.
-            # They are defined in models.py as create_user_profile and save_user_profile.
             try:
                 model_post_save.disconnect(create_user_profile, sender=User)
                 model_post_save.disconnect(save_user_profile, sender=User)
@@ -284,7 +281,6 @@ def user_login(request):
             messages.error(request, 'Invalid username or password.')
     else:
         form = LoginForm()
-
     return render(request, 'Register&login/login.html', {'form': form})
 
 
@@ -309,7 +305,6 @@ class CustomPasswordResetView(PasswordResetView):
     success_url = reverse_lazy('password_reset_done')
 
     def form_valid(self, form):
-        # Get the user's email
         email = form.cleaned_data['email']
 
         try:
@@ -392,7 +387,6 @@ def profile_view(request):
     else:
         return redirect('home')
 
-
 @login_required
 @vendor_required
 def vendor_profile(request):
@@ -415,7 +409,7 @@ def vendor_profile(request):
         'approval_status': 'Approved' if vendor_profile.is_approved else 'Pending Approval'
     }
 
-    return render(request, 'customer/vendor_profile.html', context)
+    return render(request, 'consumer/vendor_profile.html', context)
 
 
 @login_required
@@ -438,13 +432,12 @@ def customer_profile(request):
         'customer': customer_profile
     }
 
-    return render(request, 'customer/customer_profile.html', context)
+    return render(request, 'consumer/customer_profile.html', context)
 
 @login_required
 def account_settings(request):
     """Account settings page"""
     user = request.user
-
     if request.method == 'POST':
         # Handle email preferences update
         if user.user_type == 'customer' and hasattr(user, 'customerprofile'):
@@ -452,13 +445,11 @@ def account_settings(request):
             user.customerprofile.newsletter_subscription = request.POST.get('newsletter_subscription') == 'on'
             user.customerprofile.save()
             messages.success(request, 'Preferences updated successfully!')
-
     context = {
         'user': user,
         'is_vendor': user.user_type == 'vendor',
         'is_customer': user.user_type == 'customer',
     }
-
     return render(request, 'consumer/account_settings.html', context)
 
 
@@ -472,7 +463,7 @@ def redirect_user_by_role(user):
         else:
             return redirect('vendor_pending')
     elif user.user_type == 'customer':
-        return redirect('customer_dashboard')
+        return redirect('product_list')
     elif user.is_staff:
         return redirect('/admin/')
     else:
@@ -502,8 +493,11 @@ def vendor_pending(request):
 def home(request):
     """Home page with role-based redirect for logged in users"""
     if request.user.is_authenticated:
+        if request.user.user_type == 'customer':
+            return redirect('product_list')
         return redirect_user_by_role(request.user)
-    return render(request, 'products/product_list.html')
+    # Always land on the public product list for guests
+    return redirect('product_list')
 
 
 def about(request):
@@ -523,19 +517,17 @@ def contact(request):
 def customer_dashboard(request):
     """Customer dashboard with black/magenta theme"""
     user = request.user
-    
     context = {
         'user': user,
         'customer_profile': user.customerprofile,
         # 'recent_orders': orders,
         'theme': {
-            'primary': '#000000',
+            'primary': "#F5EDED",
             'accent': '#FF00FF',
-            'background': '#0a0a0a',
-            'text': '#ffffff'
+            'background': "#c0edca",
+            'text': "#120101"
         }
     }
-
     return render(request, 'consumer/dashboard.html', context)
 
 
@@ -544,18 +536,9 @@ def customer_dashboard(request):
 def vendor_dashboard(request):
     """Vendor dashboard with green/red theme"""
     vendor_profile = get_object_or_404(VendorProfile, user=request.user)
-
-    # Get vendor stats (will be implemented with orders)
-    # total_orders = Order.objects.filter(vendor=request.user).count()
-    # pending_orders = Order.objects.filter(vendor=request.user, status='pending').count()
-    # completed_orders = Order.objects.filter(vendor=request.user, status='completed').count()
-
     context = {
         'vendor': vendor_profile,
         'is_approved': vendor_profile.is_approved,
-        # 'total_orders': total_orders,
-        # 'pending_orders': pending_orders,
-        # 'completed_orders': completed_orders,
         'theme': {
             'success': '#00FF00',  # Green
             'warning': '#FFA500',  # Orange

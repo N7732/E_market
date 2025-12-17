@@ -630,12 +630,37 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
             <li class="breadcrumb-item"><a href="{% url 'product_list' %}">Products</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'category_detail' product.category.slug %}">{{ product.category.name }}</a></li>
+            {% if product.category %}
+                <li class="breadcrumb-item">
+                    <a href="{% url 'category_detail' product.category.slug %}">
+                        {{ product.category.name }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="breadcrumb-item text-muted">Uncategorized</li>
+            {% endif %}
             <li class="breadcrumb-item active" aria-current="page">{{ product.name|truncatechars:30 }}</li>
         </ol>
     </nav>
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+        <a href="{% url 'product_list' %}" class="btn btn-outline-magenta btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to products
+        </a>
+        <a href="{% url 'cart' %}" class="btn btn-outline-dark btn-sm">
+            <i class="fas fa-shopping-cart me-1"></i> Go to cart
+        </a>
+        {% if prev_product %}
+        <a href="{% url 'product_detail' prev_product.slug %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-chevron-left me-1"></i> Previous
+        </a>
+        {% endif %}
+        {% if next_product %}
+        <a href="{% url 'product_detail' next_product.slug %}" class="btn btn-outline-secondary btn-sm">
+            Next <i class="fas fa-chevron-right ms-1"></i>
+        </a>
+        {% endif %}
+    </div>
 
     <div class="product-detail-container">
         <div class="row">
@@ -667,11 +692,11 @@
                 <!-- Thumbnails -->
                 {% if product.images.all %}
                 <div class="thumbnail-grid">
-                    <div class="thumbnail active" onclick="changeMainImage('{{ product.main_image.url }}')">
+                    <div class="thumbnail active" onclick="changeMainImage('{{ product.main_image.url }}', this)">
                         <img src="{{ product.main_image.url }}" alt="{{ product.name }}">
                     </div>
                     {% for image in product.images.all %}
-                    <div class="thumbnail" onclick="changeMainImage('{{ image.image.url }}')">
+                    <div class="thumbnail" onclick="changeMainImage('{{ image.image.url }}', this)">
                         <img src="{{ image.image.url }}" alt="{{ product.name }}">
                     </div>
                     {% endfor %}
@@ -685,7 +710,12 @@
                     <h1 class="product-title-large">{{ product.name }}</h1>
                     
                     <div class="product-category">
-                        Category: <a href="{% url 'category_detail' product.category.slug %}">{{ product.category.name }}</a>
+                        Category:
+                        {% if product.category %}
+                            <a href="{% url 'category_detail' product.category.slug %}">{{ product.category.name }}</a>
+                        {% else %}
+                            <span class="text-muted">Uncategorized</span>
+                        {% endif %}
                     </div>
                     
                     <!-- Product Rating -->
@@ -700,7 +730,7 @@
                                 {% endif %}
                             {% endfor %}
                         </div>
-                        <span class="text-muted">({{ product.reviews.count }} reviews)</span>
+                        <span class="text-muted">({{ reviews|length }} reviews)</span>
                     </div>
                     {% endif %}
                     
@@ -801,34 +831,37 @@
                     {% if user.is_authenticated %}
                         <!-- Logged in users can order -->
                         {% if product.is_in_stock %}
-                        <!-- Quantity Selector -->
-                        <div class="quantity-selector-lg">
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="fw-bold">Quantity:</span>
-                                <button class="qty-btn-lg" onclick="decreaseQty()">-</button>
-                                <input type="number" id="productQty" value="1" min="1" max="{{ product.get_available_quantity }}" class="qty-input-lg">
-                                <button class="qty-btn-lg" onclick="increaseQty()">+</button>
+                        <form method="post" action="{% url 'cart_add' product.id %}">
+                            {% csrf_token %}
+                            <!-- Quantity Selector -->
+                            <div class="quantity-selector-lg">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="fw-bold">Quantity:</span>
+                                    <button class="qty-btn-lg" type="button" onclick="decreaseQty()">-</button>
+                                    <input type="number" id="productQty" name="quantity" value="1" min="1" max="{{ product.get_available_quantity }}" class="qty-input-lg">
+                                    <button class="qty-btn-lg" type="button" onclick="increaseQty()">+</button>
+                                </div>
+                                <span class="text-muted ms-3">Max: {{ product.get_available_quantity }} units</span>
                             </div>
-                            <span class="text-muted ms-3">Max: {{ product.get_available_quantity }} units</span>
-                        </div>
-                        
-                        <!-- Action Buttons for logged in users -->
-                        <div class="action-buttons">
-                            <button class="btn-add-cart-lg" onclick="addToCart()">
-                                <i class="fas fa-shopping-cart"></i> Add to Cart
-                            </button>
-                            <button class="btn-wishlist-lg" onclick="toggleWishlist()">
-                                <i class="far fa-heart" id="wishlistHeart"></i> Add to Wishlist
-                            </button>
-                        </div>
+                            
+                            <!-- Action Buttons for logged in users -->
+                            <div class="action-buttons">
+                                <button class="btn-add-cart-lg" type="submit">
+                                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                                </button>
+                                <a class="btn-wishlist-lg" href="{% url 'cart' %}">
+                                    <i class="fas fa-shopping-basket"></i> View Cart
+                                </a>
+                            </div>
+                        </form>
                         {% else %}
                         <div class="alert alert-warning mt-4">
                             <i class="fas fa-bell me-2"></i>
-                            This product is currently out of stock. You can add it to your wishlist to be notified when it's back in stock.
+                            This product is currently out of stock. Please check back soon.
                         </div>
-                        <button class="btn-wishlist-lg mt-3" onclick="toggleWishlist()">
-                            <i class="far fa-heart" id="wishlistHeart"></i> Add to Wishlist
-                        </button>
+                        <a class="btn-wishlist-lg mt-3" href="{% url 'product_list' %}">
+                            <i class="fas fa-arrow-left"></i> Back to Products
+                        </a>
                         {% endif %}
                     {% else %}
                         <!-- Non-logged in users see login prompt -->
@@ -861,9 +894,9 @@
                             <button class="btn-add-cart-lg btn-disabled" disabled>
                                 <i class="fas fa-shopping-cart"></i> Login to Add to Cart
                             </button>
-                            <button class="btn-wishlist-lg btn-disabled" disabled>
-                                <i class="far fa-heart"></i> Login for Wishlist
-                            </button>
+                            <a class="btn-wishlist-lg btn-disabled disabled" aria-disabled="true">
+                                <i class="fas fa-shopping-basket"></i> View Cart
+                            </a>
                         </div>
                     {% endif %}
                     
@@ -893,10 +926,10 @@
     <!-- Product Tabs Section (Available to all users) -->
     <div class="product-tabs-section">
         <div class="tab-nav">
-            <button class="tab-nav-btn active" onclick="openTab('descriptionTab')">Description</button>
-            <button class="tab-nav-btn" onclick="openTab('specsTab')">Specifications</button>
-            <button class="tab-nav-btn" onclick="openTab('reviewsTab')">Reviews</button>
-            <button class="tab-nav-btn" onclick="openTab('shippingTab')">Shipping & Returns</button>
+            <button class="tab-nav-btn active" onclick="openTab('descriptionTab', this)">Description</button>
+            <button class="tab-nav-btn" onclick="openTab('specsTab', this)">Specifications</button>
+            <button class="tab-nav-btn" onclick="openTab('reviewsTab', this)">Reviews</button>
+            <button class="tab-nav-btn" onclick="openTab('shippingTab', this)">Shipping & Returns</button>
         </div>
         
         <!-- Description Tab -->
@@ -932,17 +965,17 @@
         
         <!-- Reviews Tab -->
         <div id="reviewsTab" class="tab-content">
-            {% if product.reviews.all %}
-                <h4 class="mb-4">Customer Reviews ({{ product.reviews.count }})</h4>
-                {% for review in product.reviews.all %}
+            {% if reviews %}
+                <h4 class="mb-4">Customer Reviews ({{ reviews|length }})</h4>
+                {% for review in reviews %}
                 <div class="review-card">
                     <div class="review-header">
                         <div class="review-user">
                             <div class="user-avatar">
-                                {{ review.user.username|first|upper }}
+                                {{ review.customer.username|first|upper }}
                             </div>
                             <div>
-                                <strong>{{ review.user.username }}</strong>
+                                <strong>{{ review.customer.username }}</strong>
                                 <div class="review-rating mt-1">
                                     {% for i in "12345"|make_list %}
                                         {% if forloop.counter <= review.rating %}
@@ -970,25 +1003,34 @@
             {% endif %}
             
             <!-- Review form - only for logged in users -->
-            {% if user.is_authenticated %}
+            {% if can_review and review_form %}
             <div class="mt-5">
                 <h5>Write a Review</h5>
                 <form method="post" action="{% url 'add_review' product.id %}" class="mt-3">
                     {% csrf_token %}
+                    {% if review_form.errors %}
+                    <div class="alert alert-danger">
+                        Please fix the errors below and try again.
+                    </div>
+                    {% endif %}
                     <div class="mb-3">
                         <label class="form-label">Rating</label>
-                        <div class="rating-stars">
-                            {% for i in "54321"|make_list %}
-                            <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" {% if forloop.first %}checked{% endif %}>
-                            <label for="star{{ i }}">★</label>
-                            {% endfor %}
-                        </div>
+                        {{ review_form.rating }}
                     </div>
                     <div class="mb-3">
-                        <textarea class="form-control" name="comment" rows="4" placeholder="Share your experience with this product..."></textarea>
+                        {{ review_form.title.label_tag }}
+                        {{ review_form.title }}
+                    </div>
+                    <div class="mb-3">
+                        {{ review_form.comment.label_tag }}
+                        {{ review_form.comment }}
                     </div>
                     <button type="submit" class="btn btn-magenta">Submit Review</button>
                 </form>
+            </div>
+            {% elif has_reviewed %}
+            <div class="alert alert-success mt-4">
+                <i class="fas fa-check-circle me-2"></i>You already reviewed this product. Thanks for your feedback!
             </div>
             {% else %}
             <div class="alert alert-info mt-4">
@@ -1055,14 +1097,16 @@
 {% block extra_js %}
 <script>
     // Change main product image
-    function changeMainImage(imageUrl) {
+    function changeMainImage(imageUrl, element) {
         document.getElementById('mainProductImage').src = imageUrl;
         
         // Update active thumbnail
-        document.querySelectorAll('.thumbnail').forEach(thumb => {
-            thumb.classList.remove('active');
-        });
-        event.currentTarget.classList.add('active');
+        if (element) {
+            document.querySelectorAll('.thumbnail').forEach(thumb => {
+                thumb.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
     }
     
     // Quantity controls
@@ -1082,7 +1126,7 @@
     }
     
     // Tab switching
-    function openTab(tabId) {
+    function openTab(tabId, element) {
         // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.remove('active');
@@ -1097,100 +1141,9 @@
         document.getElementById(tabId).classList.add('active');
         
         // Activate clicked button
-        event.currentTarget.classList.add('active');
-    }
-    
-    // Add to cart function (only for logged in users)
-    function addToCart() {
-        {% if user.is_authenticated %}
-        const quantity = document.getElementById('productQty').value;
-        const productId = '{{ product.id }}';
-        
-        // AJAX call to add to cart
-        fetch('/cart/add/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({
-                product_id: productId,
-                quantity: quantity
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show success message
-                showMessage('success', 'Product added to cart successfully!');
-                // Update cart count in header
-                updateCartCount();
-            } else {
-                showMessage('error', 'Error adding product to cart: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('error', 'An error occurred. Please try again.');
-        });
-        {% else %}
-        // Redirect to login page
-        window.location.href = "{% url 'login' %}?next={{ request.path }}";
-        {% endif %}
-    }
-    
-    // Wishlist toggle (only for logged in users)
-    function toggleWishlist() {
-        {% if user.is_authenticated %}
-        const heartIcon = document.getElementById('wishlistHeart');
-        const productId = '{{ product.id }}';
-        
-        if (heartIcon.classList.contains('far')) {
-            heartIcon.classList.remove('far');
-            heartIcon.classList.add('fas');
-            heartIcon.style.color = '#FF00FF';
-            
-            // Add to wishlist AJAX call
-            fetch('/wishlist/add/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ product_id: productId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('success', 'Added to wishlist!');
-                }
-            });
-            
-        } else {
-            heartIcon.classList.remove('fas');
-            heartIcon.classList.add('far');
-            heartIcon.style.color = '';
-            
-            // Remove from wishlist AJAX call
-            fetch('/wishlist/remove/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ product_id: productId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('info', 'Removed from wishlist!');
-                }
-            });
+        if (element) {
+            element.classList.add('active');
         }
-        {% else %}
-        // Redirect to login page
-        window.location.href = "{% url 'login' %}?next={{ request.path }}";
-        {% endif %}
     }
     
     // Share functions (available to all users)
@@ -1217,14 +1170,8 @@
     function copyLink() {
         const url = window.location.href;
         navigator.clipboard.writeText(url).then(() => {
-            showMessage('success', 'Product link copied to clipboard!');
+            alert('Product link copied to clipboard!');
         });
-    }
-    
-    // Helper function to show messages
-    function showMessage(type, text) {
-        // You can implement a toast notification system here
-        alert(text); // Simple alert for now
     }
     
     // Initialize
@@ -1235,16 +1182,6 @@
         if (qtyInput) {
             qtyInput.max = maxQty;
         }
-        
-        // Check if product is in wishlist for logged in users
-        {% if user.is_authenticated and is_in_wishlist %}
-            const heartIcon = document.getElementById('wishlistHeart');
-            if (heartIcon) {
-                heartIcon.classList.remove('far');
-                heartIcon.classList.add('fas');
-                heartIcon.style.color = '#FF00FF';
-            }
-        {% endif %}
     });
 </script>
 {% endblock %}

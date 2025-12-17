@@ -31,8 +31,8 @@
                         
                         <h4 class="mb-2">{{ product.name }}</h4>
                         <p class="text-muted mb-0">SKU: {{ product.sku|default:"N/A" }}</p>
-                        <p class="text-muted mb-0">Price: ${{ product.price }}</p>
-                        <p class="text-muted mb-0">Stock: {{ product.stock }}</p>
+                        <p class="text-muted mb-0">Price: {{ product.price }} RWF</p>
+                        <p class="text-muted mb-0">Stock: {{ product.get_available_quantity }}</p>
                         {% if product.category %}
                             <p class="text-muted mb-0">Category: {{ product.category.name }}</p>
                         {% endif %}
@@ -47,11 +47,11 @@
                             You are about to delete <strong>"{{ product.name }}"</strong>. 
                             This action cannot be undone. All product data including images will be permanently removed.
                         </p>
-                        {% if product.stock > 0 %}
+                        {% if product.get_available_quantity > 0 %}
                             <hr>
                             <p class="mb-0">
                                 <i class="fas fa-box me-2"></i>
-                                This product has <strong>{{ product.stock }}</strong> items in stock. 
+                                This product has <strong>{{ product.get_available_quantity }}</strong> items in stock. 
                                 Deleting it will remove these from inventory.
                             </p>
                         {% endif %}
@@ -64,7 +64,7 @@
                             <button type="submit" class="btn btn-danger btn-lg px-4">
                                 <i class="fas fa-trash-alt me-2"></i> Confirm Delete
                             </button>
-                            <a href="{% url 'vendor_product_list' %}" class="btn btn-outline-secondary btn-lg px-4">
+                            <a href="{% url redirect_target %}" class="btn btn-outline-secondary btn-lg px-4">
                                 <i class="fas fa-times me-2"></i> Cancel
                             </a>
                         </div>
@@ -99,9 +99,20 @@
                         Deactivated products won't be visible to customers but can be restored later.
                     </p>
                     <div class="mt-3">
-                        <a href="#" class="btn btn-outline-warning btn-sm">
-                            <i class="fas fa-eye-slash me-1"></i> Deactivate Instead
-                        </a>
+                        {% if is_owner %}
+                        <form method="post" action="{% url 'vendor_toggle_product_status' product.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-eye-slash me-1"></i>
+                                {% if product.status == 'active' %}Move to Draft{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                        {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-user-shield me-1"></i>
+                            As an admin, you can delete products directly. Vendors can deactivate instead.
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

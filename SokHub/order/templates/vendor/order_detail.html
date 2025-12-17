@@ -267,20 +267,28 @@
                         <h5 class="mb-0">Order Actions</h5>
                     </div>
                     <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-success">
-                                <i class="bi bi-truck"></i> Mark as Shipped
-                            </button>
-                            <button class="btn btn-primary">
-                                <i class="bi bi-envelope"></i> Send Tracking
-                            </button>
-                            <button class="btn btn-warning">
-                                <i class="bi bi-clock-history"></i> Update ETA
-                            </button>
-                            <button class="btn btn-outline-danger">
-                                <i class="bi bi-x-circle"></i> Cancel Order
-                            </button>
-                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label">Update Status</label>
+                                {{ status_form.status }}
+                            </div>
+                            {% if order.status == 'shipped' %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Marking this order as "Delivered" will send a confirmation email to the customer.
+                            </div>
+                            {% endif %}
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle"></i> Update Status
+                                </button>
+                                {% if order.status == 'shipped' %}
+                                <button type="submit" name="complete_order" class="btn btn-primary">
+                                    <i class="bi bi-truck"></i> Mark as Delivered & Send Email
+                                </button>
+                                {% endif %}
+                            </div>
+                        </form>
                     </div>
                 </div>
                 

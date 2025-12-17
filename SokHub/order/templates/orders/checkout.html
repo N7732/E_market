@@ -3,14 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout | OrderApp</title>
+    <title>Checkout | OrderApp Rwanda</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .payment-method-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        .momo-color { color: #7c0080; }
+        .bank-color { color: #0066cc; }
+        .paypal-color { color: #003087; }
+        .card-color { color: #28a745; }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="/">🛒 OrderApp</a>
+            <a class="navbar-brand" href="/">🛒 OrderApp Rwanda</a>
             <div class="navbar-nav">
                 <span class="nav-item nav-link">Checkout</span>
             </div>
@@ -20,157 +30,352 @@
     <div class="container py-5">
         <div class="row">
             <div class="col-lg-8">
+                <!-- Display Django Messages -->
+                {% if messages %}
                 <div class="mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">1</div>
-                        <h5 class="ms-3 mb-0">Shipping Information</h5>
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Checkout Form -->
+                <form method="POST" action="{% url 'checkout' %}" id="checkout-form">
+                    {% csrf_token %}
                     
-                    <div class="card">
-                        <div class="card-body">
-                            <form>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">First Name</label>
-                                        <input type="text" class="form-control" value="John">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Last Name</label>
-                                        <input type="text" class="form-control" value="Smith">
-                                    </div>
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">1</div>
+                            <h5 class="ms-3 mb-0">Shipping Information</h5>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <!-- Django Form Fields -->
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name *</label>
+                                    <input type="text" name="full_name" class="form-control" required 
+                                           value="{{ request.user.get_full_name|default:'' }}">
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <input type="text" class="form-control" value="123 Main St">
+                                    <label class="form-label">Phone Number (Rwandan) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">+250</span>
+                                        {{ form.shipping_phone }}
+                                    </div>
+                                    <small class="text-muted">Format: 78xxxxxxx or 72xxxxxxx</small>
+                                    {% if form.shipping_phone.errors %}
+                                    <div class="text-danger small">{{ form.shipping_phone.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Address *</label>
+                                    {{ form.shipping_address }}
+                                    {% if form.shipping_address.errors %}
+                                    <div class="text-danger small">{{ form.shipping_address.errors }}</div>
+                                    {% endif %}
                                 </div>
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">City</label>
-                                        <input type="text" class="form-control" value="New York">
+                                        <label class="form-label">City *</label>
+                                        {{ form.shipping_city }}
+                                        {% if form.shipping_city.errors %}
+                                        <div class="text-danger small">{{ form.shipping_city.errors }}</div>
+                                        {% endif %}
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">State</label>
-                                        <select class="form-select">
-                                            <option selected>NY</option>
-                                            <option>CA</option>
-                                            <option>TX</option>
+                                    <div class="col-md-6">
+                                        <label class="form-label">District *</label>
+                                        <select class="form-select" name="district" required>
+                                            <option value="">Select District</option>
+                                            <option value="Kicukiro">Kicukiro</option>
+                                            <option value="Gasabo">Gasabo</option>
+                                            <option value="Nyarugenge">Nyarugenge</option>
+                                            <option value="Musanze">Musanze</option>
+                                            <option value="Rubavu">Rubavu</option>
+                                            <option value="Huye">Huye</option>
+                                            <option value="Other">Other</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">ZIP</label>
-                                        <input type="text" class="form-control" value="10001">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Delivery Notes (Optional)</label>
+                                    {{ form.shipping_notes }}
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    {{ form.save_shipping_address }}
+                                    <label class="form-check-label" for="{{ form.save_shipping_address.id_for_label }}">
+                                        Save this address for future orders
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- SIMPLE PAYMENT FOR RWANDA -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">2</div>
+                            <h5 class="ms-3 mb-0">Payment Method (Rwanda)</h5>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <!-- Mobile Money (Default for Rwanda) -->
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" 
+                                               id="momo" value="momo" checked>
+                                        <label class="form-check-label d-flex align-items-center" for="momo">
+                                            <i class="bi bi-phone payment-method-icon momo-color"></i>
+                                            <div>
+                                                <strong>Mobile Money (Recommended)</strong>
+                                                <div class="text-muted small">MTN Mobile Money or Airtel Money</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div id="momoDetails" class="mt-3 ms-4">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Mobile Money Number *</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">+250</span>
+                                                    <input type="tel" name="momo_number" class="form-control" 
+                                                           pattern="[0-9]{9}" placeholder="78xxxxxxx" required>
+                                                </div>
+                                                <small class="text-muted">Enter your MTN/Airtel number</small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Provider *</label>
+                                                <select class="form-select" name="momo_provider" required>
+                                                    <option value="">Select Provider</option>
+                                                    <option value="mtn">MTN Mobile Money</option>
+                                                    <option value="airtel">Airtel Money</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-info small mt-3">
+                                            <i class="bi bi-info-circle"></i>
+                                            You'll receive a payment request on your phone. Confirm to complete order.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <!-- Cash on Delivery -->
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" 
+                                               id="cod" value="cod">
+                                        <label class="form-check-label d-flex align-items-center" for="cod">
+                                            <i class="bi bi-cash payment-method-icon text-success"></i>
+                                            <div>
+                                                <strong>Cash on Delivery</strong>
+                                                <div class="text-muted small">Pay when you receive your order</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div id="codDetails" class="mt-3 ms-4 d-none">
+                                        <div class="alert alert-warning small">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            <strong>Note:</strong> An extra RWF 500 delivery fee applies for Cash on Delivery.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Bank Transfer -->
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" 
+                                               id="bank" value="bank">
+                                        <label class="form-check-label d-flex align-items-center" for="bank">
+                                            <i class="bi bi-bank payment-method-icon bank-color"></i>
+                                            <div>
+                                                <strong>Bank Transfer</strong>
+                                                <div class="text-muted small">Transfer to our bank account</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div id="bankDetails" class="mt-3 ms-4 d-none">
+                                        <div class="alert alert-light small">
+                                            <strong>Transfer to:</strong><br>
+                                            • Bank: Bank of Kigali<br>
+                                            • Account: OrderApp Rwanda Ltd<br>
+                                            • Account: 123-456-789-0<br>
+                                            <em>Send proof of payment to +250 788 123 456</em>
+                                        </div>
                                     </div>
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label class="form-label">Phone</label>
-                                    <input type="tel" class="form-control" value="(555) 123-4567">
+                                    <label class="form-label">Order Notes (Optional)</label>
+                                    {{ form.customer_notes }}
                                 </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">2</div>
-                        <h5 class="ms-3 mb-0">Payment Method</h5>
                     </div>
                     
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="radio" name="payment" id="creditCard" checked>
-                                <label class="form-check-label" for="creditCard">
-                                    <i class="bi bi-credit-card"></i> Credit Card
-                                </label>
-                            </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-12">
-                                    <label class="form-label">Card Number</label>
-                                    <input type="text" class="form-control" value="•••• •••• •••• 4242">
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Expiration</label>
-                                    <input type="text" class="form-control" placeholder="MM/YY">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">CVV</label>
-                                    <input type="text" class="form-control" placeholder="123">
-                                </div>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="payment" id="paypal">
-                                <label class="form-check-label" for="paypal">
-                                    <i class="bi bi-paypal"></i> PayPal
-                                </label>
-                            </div>
-                        </div>
+                    <!-- Submit Button -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'cart' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Cart
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-lock"></i> Complete Order
+                        </button>
                     </div>
-                </div>
-                
-                <div class="d-flex justify-content-between">
-                    <a href="cart.html" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Back to Cart
-                    </a>
-                    <a href="order_confirmation.html" class="btn btn-primary">
-                        Place Order <i class="bi bi-check-lg"></i>
-                    </a>
-                </div>
+                </form>
             </div>
             
+            <!-- Order Summary -->
             <div class="col-lg-4">
                 <div class="card sticky-top" style="top: 20px;">
                     <div class="card-body">
-                        <h5 class="card-title mb-3">Order Review</h5>
+                        <h5 class="card-title mb-3">Order Summary</h5>
                         
                         <div class="mb-3">
-                            <h6>Items (3)</h6>
-                            <div class="d-flex justify-content-between small mb-1">
-                                <span>Wireless Headphones ×1</span>
-                                <span>$99.99</span>
+                            <h6>Items ({{ cart.items.count }})</h6>
+                            {% for item in cart_items %}
+                            <div class="d-flex justify-content-between small mb-2">
+                                <div>
+                                    <span>{{ item.product.name }} ×{{ item.quantity }}</span>
+                                    {% if not item.product.is_in_stock %}
+                                    <span class="badge bg-danger ms-2">Out of Stock</span>
+                                    {% endif %}
+                                </div>
+                                <span>RWF {{ item.total_price|floatformat:0 }}</span>
                             </div>
-                            <div class="d-flex justify-content-between small mb-1">
-                                <span>USB-C Cable ×2</span>
-                                <span>$29.98</span>
-                            </div>
+                            {% endfor %}
                         </div>
                         
                         <hr>
                         
                         <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal</span>
-                            <span>$274.97</span>
+                            <span>RWF {{ subtotal|floatformat:0 }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Shipping</span>
-                            <span>$9.99</span>
+                            <span>RWF {{ shipping_cost|floatformat:0 }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-3">
-                            <span>Tax</span>
-                            <span>$22.50</span>
+                            <span>Tax (18%)</span>
+                            <span>RWF {{ cart.get_tax|floatformat:0 }}</span>
                         </div>
+                        
+                        <hr>
                         
                         <div class="d-flex justify-content-between mb-4 fs-5">
                             <strong>Total</strong>
-                            <strong class="text-primary">$307.46</strong>
+                            <strong class="text-primary">RWF {{ total|floatformat:0 }}</strong>
+                        </div>
+                        
+                        <!-- Payment Info -->
+                        <div class="alert alert-success">
+                            <i class="bi bi-shield-check"></i>
+                            <strong>Secure Payment</strong>
+                            <div class="small mt-1">Your payment information is encrypted and secure.</div>
                         </div>
                         
                         <div class="alert alert-info small">
-                            <i class="bi bi-info-circle"></i>
-                            Your order will be processed within 24 hours. Free returns within 30 days.
+                            <i class="bi bi-lightning-charge momo-color"></i>
+                            <strong>Quickest option:</strong> Mobile Money confirms instantly!
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Toggle payment method details
+        function togglePaymentDetails() {
+            // Hide all details first
+            document.getElementById('momoDetails').classList.add('d-none');
+            document.getElementById('codDetails').classList.add('d-none');
+            document.getElementById('bankDetails').classList.add('d-none');
+            
+            // Get selected payment method
+            const selected = document.querySelector('input[name="payment_method"]:checked');
+            if (!selected) return;
+            
+            // Show selected method details
+            if (selected.id === 'momo') {
+                document.getElementById('momoDetails').classList.remove('d-none');
+                // Make momo fields required
+                document.querySelector('input[name="momo_number"]').required = true;
+                document.querySelector('select[name="momo_provider"]').required = true;
+            } else {
+                // Remove required from momo fields
+                document.querySelector('input[name="momo_number"]').required = false;
+                document.querySelector('select[name="momo_provider"]').required = false;
+            }
+            
+            if (selected.id === 'cod') {
+                document.getElementById('codDetails').classList.remove('d-none');
+            } else if (selected.id === 'bank') {
+                document.getElementById('bankDetails').classList.remove('d-none');
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            togglePaymentDetails();
+            
+            // Listen for payment method changes
+            document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+                radio.addEventListener('change', togglePaymentDetails);
+            });
+            
+            // Phone number formatting
+            const phoneInputs = document.querySelectorAll('input[type="tel"]');
+            phoneInputs.forEach(input => {
+                input.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 9) value = value.slice(0, 9);
+                    e.target.value = value;
+                });
+            });
+            
+            // Form validation
+            document.getElementById('checkout-form').addEventListener('submit', function(e) {
+                // Simple validation
+                const phone = document.querySelector('input[name="shipping_phone"]');
+                if (phone && phone.value && phone.value.length !== 9) {
+                    e.preventDefault();
+                    alert('Please enter a valid 9-digit Rwandan phone number (without +250)');
+                    phone.focus();
+                    return false;
+                }
+                
+                // Check if momo is selected but number not provided
+                const momoSelected = document.getElementById('momo').checked;
+                const momoNumber = document.querySelector('input[name="momo_number"]');
+                if (momoSelected && (!momoNumber.value || momoNumber.value.length !== 9)) {
+                    e.preventDefault();
+                    alert('Please enter your 9-digit Mobile Money number');
+                    momoNumber.focus();
+                    return false;
+                }
+                
+                return true;
+            });
+        });
+    </script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

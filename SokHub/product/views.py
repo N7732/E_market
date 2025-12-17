@@ -2,33 +2,54 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Avg, F, Sum
+from django.db.models import Q, Avg, F, Sum, Count
 from django.core.paginator import Paginator
 from django.views.generic import ListView, DetailView
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 
 from customer.Decorator import vendor_required, customer_required
 from .models import Product, Category, ProductReview, StockHistory
 from .form import ProductForm, ProductSearchForm, ProductReviewForm, StockAdjustmentForm
 
 # =========== PUBLIC VIEWS ===========
+
+@login_required
+def add_review(request, product_id):
+    """Add a review for a product"""
+    product = get_object_or_404(Product, id=product_id)
+    
+    if request.method == 'POST':
+        form = ProductReviewForm(request.POST, product=product, customer=request.user)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.product = product
+            review.customer = request.user
+            review.save()
+            return redirect('product_detail', slug=product.slug)
+    else:
+        form = ProductReviewForm(product=product, customer=request.user)
+    
+    return render(request, 'products/add_review.html', {
+        'product': product,
+        'form': form
+    })
+
 class ProductListView(ListView):
     """Public product listing page"""
     model = Product
     template_name = 'products/product_list.html'
     context_object_name = 'products'
     paginate_by = 12
-    
     def get_queryset(self):
         queryset = Product.objects.filter(
             status='active', 
             is_available=True
         ).select_related('vendor', 'category')
         
-        # Apply search filters
         form = ProductSearchForm(self.request.GET)
         if form.is_valid():
             q = form.cleaned_data.get('q')
@@ -47,7 +68,6 @@ class ProductListView(ListView):
                 ).distinct()
             
             if category:
-                # Include products in subcategories
                 subcategories = category.get_all_children()
                 category_ids = [category.id] + [c.id for c in subcategories]
                 queryset = queryset.filter(category_id__in=category_ids)
@@ -98,7 +118,6 @@ class ProductDetailView(DetailView):
     
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        # Increment view count
         obj.view_count = F('view_count') + 1
         obj.save(update_fields=['view_count'])
         obj.refresh_from_db()
@@ -106,7 +125,7 @@ class ProductDetailView(DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        product = self.get_object()
+        product = self.object
         
         # Get related products
         related_products = Product.objects.filter(
@@ -118,14 +137,37 @@ class ProductDetailView(DetailView):
         # Get approved reviews
         reviews = product.reviews.filter(is_approved=True).select_related('customer')
         
+        # Basic previous/next navigation within active products
+        base_filters = {'status': 'active', 'is_available': True}
+        published_reference = product.published_at or product.created_at
+        prev_product = Product.objects.filter(
+            published_at__lt=published_reference,
+            **base_filters
+        ).order_by('-published_at', '-created_at').first()
+        next_product = Product.objects.filter(
+            published_at__gt=published_reference,
+            **base_filters
+        ).order_by('published_at', 'created_at').first()
+        
+        review_form = None
+        if self.request.user.is_authenticated and getattr(self.request.user, 'user_type', None) == 'customer':
+            review_form = ProductReviewForm(product=product, customer=self.request.user)
+        
+        user_has_review = False
+        if self.request.user.is_authenticated:
+            user_has_review = product.reviews.filter(customer=self.request.user).exists()
+        
         context.update({
             'related_products': related_products,
             'reviews': reviews,
-            'has_reviewed': reviews.filter(customer=self.request.user).exists() if self.request.user.is_authenticated else False,
+            'has_reviewed': user_has_review,
             'can_review': self.request.user.is_authenticated and 
                          self.request.user.user_type == 'customer' and
-                         not reviews.filter(customer=self.request.user).exists(),
+                         not user_has_review,
             'rating_range': range(5, 0, -1),  # [5, 4, 3, 2, 1]
+            'prev_product': prev_product,
+            'next_product': next_product,
+            'review_form': review_form,
         })
         return context
 
@@ -181,7 +223,7 @@ def add_product_review(request, pk):
         return redirect('product_detail', slug=product.slug)
     
     if request.method == 'POST':
-        form = ProductReviewForm(request.POST)
+        form = ProductReviewForm(request.POST, product=product, customer=request.user)
         if form.is_valid():
             review = form.save(commit=False)
             review.product = product
@@ -191,7 +233,7 @@ def add_product_review(request, pk):
             messages.success(request, 'Thank you for your review!')
             return redirect('product_detail', slug=product.slug)
     else:
-        form = ProductReviewForm()
+        form = ProductReviewForm(product=product, customer=request.user)
     
     return render(request, 'products/add_review.html', {'form': form, 'product': product})
 
@@ -225,12 +267,18 @@ def vendor_product_list(request):
     total_products = products.count()
     active_products = products.filter(status='active').count()
     out_of_stock = products.filter(status='out_of_stock').count()
+    low_stock = products.filter(
+        is_track_inventory=True,
+        quantity__lte=F('low_stock_threshold'),
+        status='active'
+    ).count()
     
     context = {
         'page_obj': page_obj,
         'total_products': total_products,
         'active_products': active_products,
         'out_of_stock': out_of_stock,
+        'low_stock': low_stock,
         'status_filter': status_filter,
         'search_query': search_query,
     }
@@ -272,18 +320,56 @@ def vendor_edit_product(request, pk):
     return render(request, 'vendor/edit_product.html', {'form': form, 'product': product})
 
 @login_required
-@vendor_required
 def vendor_delete_product(request, pk):
-    """Vendor delete product"""
-    product = get_object_or_404(Product, pk=pk, vendor=request.user)
+    """Allow vendors to remove their own products and admins to override"""
+    product = get_object_or_404(Product, pk=pk)
+    
+    is_owner = request.user.user_type == 'vendor' and product.vendor == request.user
+    is_admin = request.user.is_staff
+    if not (is_owner or is_admin):
+        return HttpResponseForbidden("You do not have permission to delete this product.")
+    
+    redirect_target = 'vendor_product_list' if is_owner else 'product_list'
     
     if request.method == 'POST':
         product_name = product.name
         product.delete()
         messages.success(request, f'Product "{product_name}" deleted successfully!')
+        return redirect(redirect_target)
+    
+    return render(request, 'vendor/delete_product.html', {
+        'product': product,
+        'is_owner': is_owner,
+        'redirect_target': redirect_target,
+    })
+
+@login_required
+@vendor_required
+def vendor_toggle_product_status(request, pk):
+    """Allow vendors to publish/unpublish their products without admin help"""
+    product = get_object_or_404(Product, pk=pk, vendor=request.user)
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request.')
         return redirect('vendor_product_list')
     
-    return render(request, 'vendor/delete_product.html', {'product': product})
+    if product.status == 'active':
+        product.status = 'draft'
+        product.is_available = False
+        message = f'Product "{product.name}" moved to draft.'
+    else:
+        if product.is_track_inventory and not product.allow_backorder and product.get_available_quantity() <= 0:
+            messages.error(request, 'Cannot activate a product without available stock.')
+            return redirect('vendor_product_list')
+        product.status = 'active'
+        product.is_available = True
+        if not product.published_at:
+            product.published_at = timezone.now()
+        message = f'Product "{product.name}" is now active.'
+    
+    product.save(update_fields=['status', 'is_available', 'published_at'])
+    messages.success(request, message)
+    return redirect('vendor_product_list')
 
 @login_required
 @vendor_required
@@ -353,17 +439,53 @@ def vendor_analytics(request):
     # Aggregate sales data
     products = Product.objects.filter(vendor=request.user)
     
-    total_sales = products.aggregate(
+    totals = products.aggregate(
         total_revenue=Sum(F('price') * F('purchase_count'), default=0),
         total_orders=Sum('purchase_count', default=0),
-        average_rating=Avg('average_rating', default=0)
+        average_rating=Avg('average_rating', default=0),
+        product_count=Count('id'),
     )
     
-    top_selling_products = products.order_by('-purchase_count')[:5]
+    top_selling_products = products.annotate(
+        revenue=F('price') * F('purchase_count')
+    ).order_by('-purchase_count', '-revenue')[:5]
+    
+    category_breakdown = products.values('category__name').annotate(
+        units=Sum('purchase_count'),
+        revenue=Sum(F('price') * F('purchase_count'))
+    ).order_by('-units', '-revenue')
+    
+    total_revenue = totals.get('total_revenue') or 0
+    total_orders = totals.get('total_orders') or 0
+    avg_order_value = float(total_revenue) / float(total_orders) if total_orders else 0
+    
+    analytics_data = {
+        'total_revenue': float(total_revenue),
+        'total_orders': int(total_orders),
+        'avg_order_value': float(avg_order_value),
+        'average_rating': float(totals.get('average_rating') or 0),
+        'product_count': int(totals.get('product_count') or 0),
+        'top_products': [
+            {
+                'name': p.name,
+                'units': int(p.purchase_count or 0),
+                'revenue': float(p.revenue or 0),
+                'image': p.main_image.url if p.main_image else '',
+            } for p in top_selling_products
+        ],
+        'categories': [
+            {
+                'name': c['category__name'] or 'Uncategorized',
+                'units': int(c['units'] or 0),
+                'revenue': float(c['revenue'] or 0),
+            } for c in category_breakdown
+        ],
+    }
     
     context = {
-        'total_sales': total_sales,
+        'total_sales': totals,
         'top_selling_products': top_selling_products,
+        'analytics_data': analytics_data,
     }
     return render(request, 'vendor/analytics.html', context)
 
@@ -422,57 +544,3 @@ def toggle_wishlist(request, pk):
     # Simple wishlist toggle logic
     # You would need to implement Wishlist model
     return JsonResponse({'success': True, 'message': 'Wishlist updated'})
-
-# =========== HELPER FUNCTIONS ===========
-def product_detail_api(request, product_id):
-    """API endpoint for product details (used in AJAX overlay) - OPTIONAL"""
-    try:
-        product = Product.objects.get(id=product_id, status='active', is_available=True)
-        
-        product_data = {
-            'id': product.id,
-            'slug': product.slug,
-            'name': product.name,
-            'price': str(product.price),
-            'compare_at_price': str(product.compare_at_price) if product.compare_at_price else None,
-            'category': product.category.name if product.category else 'Uncategorized',
-            'vendor': product.vendor.username,
-            'description': product.description or 'No description available.',
-            'main_image': product.main_image.url if product.main_image else '',
-            'is_in_stock': product.is_in_stock(),
-            'available_quantity': product.get_available_quantity(),
-            'average_rating': float(product.average_rating) if product.average_rating else 0,
-            'review_count': product.reviews.count(),
-        }
-        
-        return JsonResponse({'success': True, 'product': product_data})
-    except Product.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Product not found'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-
-# Add this to product/views.py
-@csrf_exempt
-def product_detail_api(request, product_id):
-    """API endpoint for product details overlay"""
-    try:
-        product = Product.objects.get(id=product_id, status='active', is_available=True)
-        
-        product_data = {
-            'id': product.id,
-            'slug': product.slug,
-            'name': product.name,
-            'price': str(product.price),
-            'compare_at_price': str(product.compare_at_price) if product.compare_at_price else None,
-            'category': product.category.name if product.category else 'Uncategorized',
-            'vendor': product.vendor.vendorprofile.business_name if hasattr(product.vendor, 'vendorprofile') and product.vendor.vendorprofile.business_name else product.vendor.username,
-            'description': product.description or 'No description available.',
-            'main_image': product.main_image.url if product.main_image else '',
-            'discount_percentage': product.get_discount_percentage() if hasattr(product, 'get_discount_percentage') else 0,
-        }
-        
-        return JsonResponse({'success': True, 'product': product_data})
-    except Product.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Product not found'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})

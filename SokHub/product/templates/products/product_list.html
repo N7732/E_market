@@ -262,11 +262,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- Product Detail Overlay (Hidden by default) -->
-<div id="productDetailOverlay" class="product-detail-overlay">
-    <!-- Content will be loaded dynamically via JavaScript -->
-</div>
-
 <!-- Main Product List Content -->
 <div class="container py-5">
     <!-- Page Header -->
@@ -402,7 +397,7 @@
                 <div class="col-xl-3 col-lg-4 col-md-4 col-sm-6 mb-4">
                     <div class="product-card">
                         <div class="product-image-container">
-                            <a href="#" onclick="loadProductDetail('{{ product.id }}'); return false;">
+                            <a href="{% url 'product_detail' product.slug %}">
                                 {% if product.main_image %}
                                 <img src="{{ product.main_image.url }}" class="product-image" alt="{{ product.name }}">
                                 {% else %}
@@ -433,7 +428,7 @@
                         
                         <div class="card-body">
                             <h6 class="card-title mb-2">
-                                <a href="#" onclick="loadProductDetail('{{ product.id }}'); return false;" 
+                                <a href="{% url 'product_detail' product.slug %}" 
                                    class="text-decoration-none text-dark">
                                     {{ product.name|truncatechars:40 }}
                                 </a>
@@ -471,14 +466,28 @@
                             </div>
                             {% endif %}
                             
-                            <div class="d-flex justify-content-between align-items-center">
-                                <button class="btn btn-magenta btn-sm" onclick="loadProductDetail('{{ product.id }}')">
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <a class="btn btn-magenta btn-sm" href="{% url 'product_detail' product.slug %}">
                                     <i class="fas fa-eye me-1"></i> View Details
-                                </button>
-                                {% if user.is_authenticated and product.is_in_stock %}
-                                <button class="btn btn-outline-magenta btn-sm" onclick="addToCart('{{ product.id }}', 1)">
-                                    <i class="fas fa-cart-plus"></i>
-                                </button>
+                                </a>
+                                {% if product.is_in_stock %}
+                                    {% if user.is_authenticated %}
+                                    <form method="post" action="{% url 'cart_add' product.id %}" class="mb-0">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="quantity" value="1">
+                                        <button class="btn btn-outline-magenta btn-sm" type="submit" title="Add to cart">
+                                            <i class="fas fa-cart-plus"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <a class="btn btn-outline-magenta btn-sm" href="{% url 'login' %}?next={{ request.path }}" title="Login to add to cart">
+                                        <i class="fas fa-cart-plus"></i>
+                                    </a>
+                                    {% endif %}
+                                {% else %}
+                                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                                        <i class="fas fa-ban"></i>
+                                    </button>
                                 {% endif %}
                             </div>
                         </div>
@@ -590,239 +599,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Minimum price cannot be greater than maximum price');
             }
         });
-    }
-});
-
-// Function to load product details in overlay
-function loadProductDetail(productId) {
-    const overlay = document.getElementById('productDetailOverlay');
-    
-    // Show loading state
-    overlay.innerHTML = `
-        <div class="product-detail-container">
-            <button class="close-detail-btn" onclick="closeProductDetail()">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 6cm);">
-                <div class="spinner-border text-magenta" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        </div>
-    `;
-    overlay.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-    
-    // Fetch product details via AJAX
-    fetch(`/api/${productId}/availability/`)
-        .then(response => response.json())
-        .then(stockData => {
-            // Now fetch product details from your API
-            fetch(`/api/product-detail/${productId}/`)
-                .then(response => response.json())
-                .then(productData => {
-                    if (productData.success) {
-                        overlay.innerHTML = generateProductDetailHTML(productData.product, stockData);
-                    } else {
-                        // Fallback: redirect to product detail page
-                        window.location.href = `/product/${productId}/`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Product detail error:', error);
-                    // Fallback: redirect to product detail page
-                    window.location.href = `/product/${productId}/`;
-                });
-        })
-        .catch(error => {
-            console.error('Stock check error:', error);
-            overlay.innerHTML = `
-                <div class="product-detail-container">
-                    <button class="close-detail-btn" onclick="closeProductDetail()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                    <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 6cm);">
-                        <div class="text-center p-5">
-                            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
-                            <h4>Network Error</h4>
-                            <p class="text-muted">Unable to load product details.</p>
-                            <button class="btn btn-magenta mt-3" onclick="closeProductDetail()">
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-}
-
-// Function to generate product detail HTML for overlay
-function generateProductDetailHTML(product, stockData) {
-    return `
-        <div class="product-detail-container">
-            <button class="close-detail-btn" onclick="closeProductDetail()">
-                <i class="fas fa-times"></i>
-            </button>
-            
-            <div class="p-4">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="overlay-product-image">
-                            ${product.main_image ? 
-                                `<img src="${product.main_image}" alt="${product.name}">` :
-                                `<div class="d-flex align-items-center justify-content-center h-100">
-                                    <i class="fas fa-image fa-6x text-muted"></i>
-                                </div>`
-                            }
-                        </div>
-                    </div>
-                    
-                    <div class="col-lg-6">
-                        <h2 class="fw-bold mb-3">${product.name}</h2>
-                        
-                        <div class="d-flex align-items-center mb-3">
-                            <span class="badge bg-dark me-2">${product.category || 'Uncategorized'}</span>
-                            <span class="text-muted">
-                                <i class="fas fa-store"></i> ${product.vendor}
-                            </span>
-                        </div>
-                        
-                        <div class="overlay-price-section">
-                            <div class="d-flex align-items-center mb-2">
-                                <h3 class="overlay-current-price">${product.price} RWF</h3>
-                                ${product.compare_at_price ? 
-                                    `<span class="overlay-original-price">${product.compare_at_price} RWF</span>` : 
-                                    ''
-                                }
-                            </div>
-                            ${product.discount_percentage ? 
-                                `<div class="badge bg-magenta px-3 py-2">Save ${product.discount_percentage}%</div>` : 
-                                ''
-                            }
-                        </div>
-                        
-                        ${stockData.available ? 
-                            `<div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                ${stockData.available_quantity} items available
-                            </div>` :
-                            `<div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                ${stockData.message || 'Out of stock'}
-                            </div>`
-                        }
-                        
-                        <div class="mb-4">
-                            <h5 class="fw-bold mb-2">Description</h5>
-                            <p>${product.description || 'No description available.'}</p>
-                        </div>
-                        
-                        <div class="overlay-vendor-card">
-                            <h5 class="fw-bold mb-3">
-                                <i class="fas fa-store me-2"></i> Sold by ${product.vendor}
-                            </h5>
-                            <p class="text-muted mb-3">Trusted vendor on SokHub</p>
-                            <button class="btn btn-outline-dark" onclick="viewVendorProducts('${product.vendor}')">
-                                <i class="fas fa-store me-2"></i> View Vendor Store
-                            </button>
-                        </div>
-                        
-                        <div class="d-flex gap-3 mb-4">
-                            <button class="btn btn-magenta btn-lg flex-grow-1" onclick="addToCart('${product.id}', 1)">
-                                <i class="fas fa-shopping-cart me-2"></i> Add to Cart
-                            </button>
-                            <button class="btn btn-outline-magenta btn-lg" onclick="toggleWishlist('${product.id}')">
-                                <i class="far fa-heart"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="text-center">
-                            <a href="/${product.slug}/" class="text-magenta">
-                                <i class="fas fa-external-link-alt me-2"></i> View Full Product Page
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Function to close product detail overlay
-function closeProductDetail() {
-    document.getElementById('productDetailOverlay').style.display = 'none';
-    document.body.style.overflow = 'auto';
-}
-
-// Function to add product to cart
-function addToCart(productId, quantity) {
-    {% if user.is_authenticated %}
-    fetch('{% url "add_to_cart" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            quantity: quantity
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Product added to cart!');
-            closeProductDetail();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Network error. Please try again.');
-    });
-    {% else %}
-    window.location.href = "{% url 'login' %}?next={{ request.path }}";
-    {% endif %}
-}
-
-// Function to toggle wishlist
-function toggleWishlist(productId) {
-    {% if user.is_authenticated %}
-    fetch(`/api/${productId}/wishlist/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Wishlist updated!');
-        }
-    });
-    {% else %}
-    window.location.href = "{% url 'login' %}?next={{ request.path }}";
-    {% endif %}
-}
-
-// Function to view vendor products
-function viewVendorProducts(vendorName) {
-    window.location.href = `?q=${encodeURIComponent(vendorName)}`;
-}
-
-// Close overlay when clicking outside
-document.getElementById('productDetailOverlay').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeProductDetail();
-    }
-});
-
-// Escape key to close
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeProductDetail();
     }
 });
 </script>

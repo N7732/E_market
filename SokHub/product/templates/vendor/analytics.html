@@ -296,6 +296,8 @@
         </div>
     </div>
     
+    {{ analytics_data|json_script:"analytics-data" }}
+    
     <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6">
@@ -478,388 +480,213 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 <script>
-// Global variables
-let revenueChart, productChart, categoryChart;
-let currentPeriod = '30d';
+// Real-time analytics data injected from the server
+const analyticsData = JSON.parse(document.getElementById('analytics-data').textContent || '{}');
 
-// Animation for numbers
+let revenueChart, productChart, categoryChart;
+
 function animateNumber(element, target, suffix = '') {
-    const duration = 1500;
+    if (!element) return;
+    const duration = 800;
     const start = 0;
-    const increment = target / (duration / 16);
+    const increment = target / (duration / 16 || 1);
     let current = start;
     
     const timer = setInterval(() => {
         current += increment;
         if (current >= target) {
-            element.textContent = target.toLocaleString() + suffix;
+            element.textContent = target.toLocaleString(undefined, { maximumFractionDigits: 0 }) + suffix;
             clearInterval(timer);
         } else {
-            element.textContent = Math.floor(current).toLocaleString() + suffix;
+            element.textContent = Math.floor(current).toLocaleString(undefined, { maximumFractionDigits: 0 }) + suffix;
         }
     }, 16);
 }
 
-// Generate mock data for demo purposes
-function generateMockData(period = '30d') {
-    const dataPoints = period === '7d' ? 7 : period === '90d' ? 12 : period === '1y' ? 12 : 30;
-    
-    let labels = [];
-    let revenueData = [];
-    let ordersData = [];
-    
-    for (let i = 0; i < dataPoints; i++) {
-        if (period === '1y') {
-            labels.push(`Month ${i + 1}`);
-        } else {
-            labels.push(`Day ${i + 1}`);
-        }
-        
-        // Generate realistic looking data
-        const baseRevenue = period === '1y' ? 500000 : 50000;
-        const variation = Math.sin(i * 0.5) * 0.3 + (Math.random() * 0.2);
-        revenueData.push(Math.round(baseRevenue * (1 + variation)));
-        ordersData.push(Math.round((10 + Math.random() * 20) * (1 + variation * 0.5)));
+function renderTopProducts(products) {
+    const container = document.getElementById('topProductsList');
+    if (!container) return;
+    if (!products || products.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center mb-0">No sales data yet.</p>';
+        return;
     }
-    
-    return { labels, revenueData, ordersData };
-}
-
-// Initialize charts
-function initializeCharts() {
-    const mockData = generateMockData(currentPeriod);
-    
-    // Revenue Trend Chart
-    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-    if (revenueChart) revenueChart.destroy();
-    
-    revenueChart = new Chart(revenueCtx, {
-        type: 'line',
-        data: {
-            labels: mockData.labels,
-            datasets: [{
-                label: 'Revenue (RWF)',
-                data: mockData.revenueData,
-                borderColor: '#28a745',
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#28a745',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 7
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        label: function(context) {
-                            return `Revenue: ${context.parsed.y.toLocaleString()} RWF`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toLocaleString() + ' RWF';
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                }
-            },
-            animation: {
-                duration: 1000,
-                easing: 'easeOutQuart'
-            }
-        }
-    });
-    
-    // Product Performance Chart
-    const productCtx = document.getElementById('productChart').getContext('2d');
-    if (productChart) productChart.destroy();
-    
-    productChart = new Chart(productCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
-            datasets: [{
-                label: 'Units Sold',
-                data: [45, 38, 29, 24, 18],
-                backgroundColor: [
-                    'rgba(40, 167, 69, 0.7)',
-                    'rgba(23, 162, 184, 0.7)',
-                    'rgba(255, 193, 7, 0.7)',
-                    'rgba(111, 66, 193, 0.7)',
-                    'rgba(220, 53, 69, 0.7)'
-                ],
-                borderColor: [
-                    '#28a745',
-                    '#17a2b8',
-                    '#ffc107',
-                    '#6f42c1',
-                    '#dc3545'
-                ],
-                borderWidth: 1,
-                borderRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `Sold: ${context.parsed.y} units`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 10
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            },
-            animation: {
-                duration: 1000,
-                easing: 'easeOutQuart'
-            }
-        }
-    });
-    
-    // Category Chart
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    if (categoryChart) categoryChart.destroy();
-    
-    categoryChart = new Chart(categoryCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Electronics', 'Fashion', 'Home', 'Groceries', 'Others'],
-            datasets: [{
-                data: [35, 25, 20, 15, 5],
-                backgroundColor: [
-                    '#28a745',
-                    '#17a2b8',
-                    '#ffc107',
-                    '#6f42c1',
-                    '#dc3545'
-                ],
-                borderWidth: 2,
-                borderColor: '#ffffff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.label}: ${context.parsed}%`;
-                        }
-                    }
-                }
-            },
-            cutout: '65%',
-            animation: {
-                animateScale: true,
-                animateRotate: true,
-                duration: 1000
-            }
-        }
-    });
-    
-    // Generate legend for category chart
-    const legendContainer = document.getElementById('categoryLegend');
-    const legendHtml = `
-        <div class="row text-center">
-            <div class="col">
-                <span class="d-inline-block me-2" style="width: 12px; height: 12px; background-color: #28a745;"></span>
-                <small>Electronics</small>
-            </div>
-            <div class="col">
-                <span class="d-inline-block me-2" style="width: 12px; height: 12px; background-color: #17a2b8;"></span>
-                <small>Fashion</small>
-            </div>
-            <div class="col">
-                <span class="d-inline-block me-2" style="width: 12px; height: 12px; background-color: #ffc107;"></span>
-                <small>Home</small>
-            </div>
-        </div>
-    `;
-    legendContainer.innerHTML = legendHtml;
-    
-    // Update top products list
-    const products = [
-        { name: 'Premium Smartphone X', sales: 45, revenue: 6750000 },
-        { name: 'Wireless Bluetooth Earbuds', sales: 38, revenue: 2850000 },
-        { name: 'Laptop Pro 2024', sales: 29, revenue: 8700000 },
-        { name: 'Fitness Tracker Watch', sales: 24, revenue: 1200000 },
-        { name: 'Home Speaker System', sales: 18, revenue: 900000 }
-    ];
-    
-    let productsHtml = '';
+    container.innerHTML = '';
     products.forEach((product, index) => {
-        productsHtml += `
-            <div class="top-product-item" style="animation-delay: ${index * 0.1}s">
+        const widthPercent = products[0].units ? Math.min(100, (product.units / products[0].units) * 100) : 0;
+        container.innerHTML += `
+            <div class="top-product-item">
                 <div class="product-rank rank-${index + 1}">${index + 1}</div>
                 <div class="flex-grow-1">
-                    <h6 class="mb-1">${product.name}</h6>
-                    <div class="d-flex justify-content-between small">
-                        <span class="text-muted">${product.sales} units sold</span>
-                        <span class="fw-bold text-success">${product.revenue.toLocaleString()} RWF</span>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${product.name}</h6>
+                            <small class="text-muted">${product.units.toLocaleString()} sales • ${product.revenue.toLocaleString()} RWF</small>
+                        </div>
+                        <div class="trend-badge trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: ${widthPercent}%"></div>
                     </div>
                 </div>
             </div>
         `;
     });
-    
-    document.getElementById('topProductsList').innerHTML = productsHtml;
-    
-    // Update animated numbers
-    const totalRevenue = mockData.revenueData.reduce((a, b) => a + b, 0);
-    const totalOrders = mockData.ordersData.reduce((a, b) => a + b, 0);
-    const avgOrderValue = totalRevenue / totalOrders;
-    const growthRate = 12.5;
-    
-    animateNumber(document.getElementById('totalRevenue'), totalRevenue, ' RWF');
-    animateNumber(document.getElementById('totalOrders'), totalOrders);
-    animateNumber(document.getElementById('avgOrderValue'), Math.round(avgOrderValue), ' RWF');
-    animateNumber(document.getElementById('growthRate'), growthRate, '%');
-    
-    // Update progress bars
-    const metrics = {
-        conversion: 42,
-        satisfaction: 87,
-        repeat: 65
-    };
-    
-    Object.keys(metrics).forEach(metric => {
-        const bar = document.getElementById(`${metric}Bar`);
-        const rate = document.getElementById(`${metric}Rate`);
-        const target = metrics[metric];
-        
-        bar.style.width = '0%';
-        rate.textContent = '0%';
-        
-        setTimeout(() => {
-            bar.style.width = target + '%';
-            rate.textContent = target + '%';
-        }, 300);
+}
+
+function buildRevenueChart(products) {
+    const ctx = document.getElementById('revenueChart')?.getContext('2d');
+    if (!ctx) return;
+    if (revenueChart) revenueChart.destroy();
+    const labels = products.map(p => p.name);
+    const data = products.map(p => p.revenue);
+    revenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Revenue (RWF)',
+                data,
+                backgroundColor: '#28a745',
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.parsed.y.toLocaleString()} RWF`
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
     });
 }
 
-// Generate sparkline charts
-function generateSparklines() {
-    const sparkOpts = {
-        type: 'line',
+function buildProductChart(products) {
+    const ctx = document.getElementById('productChart')?.getContext('2d');
+    if (!ctx) return;
+    if (productChart) productChart.destroy();
+    const labels = products.map(p => p.name);
+    const data = products.map(p => p.units);
+    productChart = new Chart(ctx, {
+        type: 'bar',
         data: {
+            labels,
             datasets: [{
-                data: Array.from({length: 10}, () => Math.random() * 100),
-                borderColor: '#28a745',
-                borderWidth: 2,
-                fill: false,
-                tension: 0.4
+                label: 'Units Sold',
+                data,
+                backgroundColor: '#ffc107',
+                borderRadius: 8,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: { x: { display: false }, y: { display: false } }
+            scales: { y: { beginAtZero: true } }
         }
-    };
-    
-    ['revenueSparkline', 'ordersSparkline', 'growthSparkline', 'avgSparkline'].forEach(id => {
-        const ctx = document.getElementById(id).getContext('2d');
-        new Chart(ctx, sparkOpts);
     });
 }
 
-// Period filter functionality
-document.querySelectorAll('[data-period]').forEach(btn => {
-    btn.addEventListener('click', function() {
-        // Update active button
-        document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        
-        // Update current period
-        currentPeriod = this.dataset.period;
-        
-        // Show loading state
-        document.getElementById('revenueLoading').classList.remove('d-none');
-        
-        // Simulate API call delay
-        setTimeout(() => {
-            initializeCharts();
-            document.getElementById('revenueLoading').classList.add('d-none');
-        }, 800);
-    });
-});
-
-// Chart type filter
-document.querySelectorAll('[data-chart-type]').forEach(item => {
-    item.addEventListener('click', function(e) {
-        e.preventDefault();
-        // In a real app, this would reload chart data with new aggregation
-        alert(`Switching to ${this.dataset.chartType} view...`);
-    });
-});
-
-// Initialize everything when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    initializeCharts();
-    generateSparklines();
-    
-    // Add some interactive animations
-    document.querySelectorAll('.stat-card').forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
+function buildCategoryChart(categories) {
+    const ctx = document.getElementById('categoryChart')?.getContext('2d');
+    if (!ctx) return;
+    if (categoryChart) categoryChart.destroy();
+    if (!categories || categories.length === 0) {
+        document.getElementById('categoryLegend').innerHTML = '<p class="text-muted mb-0">No category data.</p>';
+        return;
+    }
+    const labels = categories.map(c => c.name);
+    const data = categories.map(c => c.units);
+    const colors = ['#28a745', '#17a2b8', '#ffc107', '#6f42c1', '#dc3545', '#20c997', '#6610f2'];
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: labels.map((_, i) => colors[i % colors.length]),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            }
+        }
     });
     
-    // Auto-refresh simulation (every 30 seconds)
-    setInterval(() => {
-        const badge = document.querySelector('.trend-badge.trend-up');
-        badge.classList.add('pulse-animation');
-        setTimeout(() => badge.classList.remove('pulse-animation'), 2000);
-    }, 30000);
+    const legend = document.getElementById('categoryLegend');
+    legend.innerHTML = '';
+    const total = data.reduce((a, b) => a + b, 0) || 1;
+    labels.forEach((label, index) => {
+        const percent = ((data[index] / total) * 100).toFixed(1);
+        legend.innerHTML += `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center">
+                    <span class="badge rounded-pill me-2" style="background-color: ${colors[index % colors.length]}; width: 14px; height: 14px;"></span>
+                    <span>${label}</span>
+                </div>
+                <span class="fw-bold">${percent}%</span>
+            </div>
+        `;
+    });
+}
+
+function updateStatCards() {
+    const totalRevenue = analyticsData.total_revenue || 0;
+    const totalOrders = analyticsData.total_orders || 0;
+    const avgOrderValue = analyticsData.avg_order_value || 0;
+    const growthRate = 0; // Placeholder until period-over-period data is available
+    
+    animateNumber(document.getElementById('totalRevenue'), Math.round(totalRevenue), ' RWF');
+    animateNumber(document.getElementById('totalOrders'), totalOrders);
+    animateNumber(document.getElementById('avgOrderValue'), Math.round(avgOrderValue), ' RWF');
+    animateNumber(document.getElementById('growthRate'), growthRate, '%');
+}
+
+function updateProgressBars() {
+    const productCount = analyticsData.product_count || 1;
+    const totalOrders = analyticsData.total_orders || 0;
+    const satisfaction = Math.min(100, Math.round((analyticsData.average_rating || 0) / 5 * 100));
+    const conversion = Math.min(100, totalOrders ? Math.round((totalOrders / productCount) * 5) : 0);
+    const repeat = Math.min(100, totalOrders ? Math.round((totalOrders / productCount) * 2) : 0);
+    
+    const metrics = {
+        conversion: conversion,
+        satisfaction: satisfaction,
+        repeat: repeat
+    };
+    
+    Object.keys(metrics).forEach(metric => {
+        const bar = document.getElementById(`${metric}Bar`);
+        const rate = document.getElementById(`${metric}Rate`);
+        const target = metrics[metric];
+        if (!bar || !rate) return;
+        bar.style.width = target + '%';
+        rate.textContent = target + '%';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const topProducts = analyticsData.top_products || [];
+    const categories = analyticsData.categories || [];
+    
+    updateStatCards();
+    renderTopProducts(topProducts);
+    buildRevenueChart(topProducts);
+    buildProductChart(topProducts);
+    buildCategoryChart(categories);
+    updateProgressBars();
 });
 </script>
 {% endblock %}

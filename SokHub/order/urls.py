@@ -9,6 +9,7 @@ urlpatterns = [
     path('cart/remove/<int:item_id>/', views.cart_remove, name='cart_remove'),
     path('cart/update/', views.cart_update, name='cart_update'),
     path('cart/clear/', views.cart_clear, name='cart_clear'),
+    path('coupon/apply/', views.apply_coupon, name='apply_coupon'),
     
     # Checkout URLs
     path('checkout/', views.checkout_view, name='checkout'),
@@ -27,6 +28,7 @@ urlpatterns = [
     path('vendor/orders/<str:order_number>/delete/approve/', views.approve_order_deletion, name='approve_order_deletion'),
     path('vendor/orders/<str:order_number>/delete/reject/', views.reject_order_deletion, name='reject_order_deletion'),
     path('vendor/orders/bulk-update/', views.bulk_update_orders, name='bulk_update_orders'),
+    path('vendor/orders/<str:order_number>/payment/complete/', views.vendor_mark_payment_completed, name='vendor_mark_payment_completed'),
     
     # API/Utility URLs
     path('api/cart-count/', views.get_cart_count, name='get_cart_count'),

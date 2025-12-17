@@ -11,24 +11,22 @@ class User(AbstractUser):
         ('customer', 'Customer'),
         ('admin', 'Admin'),
     )
-    
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='customer')
     phone = models.CharField(max_length=15, unique=True)
     location = models.TextField()
     email = models.EmailField(unique=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_email_verified = models.BooleanField(default=False)
-    
     def __str__(self):
         return f"{self.username} ({self.get_user_type_display()})"
-    
     def is_vendor_approved(self):
         """Check if vendor is approved by admin"""
         if self.user_type == 'vendor' and hasattr(self, 'vendorprofile'):
             return self.vendorprofile.is_approved
         return False
-    
+
     def get_dashboard_url(self):
+
         """Get appropriate dashboard based on user type"""
         if self.user_type == 'vendor':
             return '/vendor/dashboard/'
@@ -37,7 +35,7 @@ class User(AbstractUser):
         elif self.user_type == 'admin' or self.is_staff:
             return '/admin/'
         return '/'
-
+    
 class VendorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vendorprofile')
     business_name = models.CharField(max_length=200)

@@ -1,6 +1,7 @@
 # orders/views.py
 from decimal import Decimal
 import json
+from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -23,22 +24,24 @@ from .form import (
     OrderFilterForm, VendorOrderFilterForm, BulkOrderUpdateForm
 )
 from django.db.models.functions import TruncMonth
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
 
 # ==================== CART VIEWS ====================
 
+@login_required
+@customer_required
 def cart_view(request):
     """Display the shopping cart"""
-    try:
-        cart = Cart.objects.get(user=request.user, active=True)
-        cart_items = cart.items.all().select_related('product', 'product__vendor')
-    except Cart.DoesNotExist:
-        cart = None
-        cart_items = []
+    cart = Cart.objects.filter(customer=request.user).first()
+    cart_items = cart.items.all().select_related('product', 'product__vendor') if cart else []
     
     # Calculate totals
     subtotal = sum(item.get_total_price() for item in cart_items) if cart_items else 0
     shipping = 0 if subtotal > 50000 else 2500
-    tax = subtotal * 0.18
+    tax = subtotal * Decimal(0.18)
     total = subtotal + shipping + tax
     
     context = {
@@ -50,45 +53,94 @@ def cart_view(request):
         'cart_total_items': len(cart_items),
     }
     
-    return render(request, 'cart/cart.html', context)
+    return render(request, 'orders/cart.html', context)
 
-@require_POST
 @login_required
-def cart_add(request, product_id):
-    """Add product to cart"""
-    product = get_object_or_404(Product, id=product_id, is_available=True)
-    
-    # Get or create cart
-    cart, created = Cart.objects.get_or_create(
-        user=request.user,
-        active=True,
-        defaults={'session_key': request.session.session_key}
-    )
-    
-    # Check if product already in cart
-    cart_item, created = CartItem.objects.get_or_create(
-        cart=cart,
-        product=product,
-        defaults={'quantity': 1}
-    )
-    
-    if not created:
-        # Increase quantity if already in cart
-        if product.is_track_inventory and cart_item.quantity >= product.quantity:
-            messages.warning(request, f"Only {product.quantity} units available in stock")
-        else:
-            cart_item.quantity += 1
-            cart_item.save()
-            messages.success(request, f"Added {product.name} to cart")
-    else:
-        messages.success(request, f"Added {product.name} to cart")
-    
+@customer_required
+def apply_coupon(request):
+    """Apply discount coupon to cart"""
+    if request.method == 'POST':
+        coupon_code = request.POST.get('coupon_code')
+        # Your coupon logic here
+        return redirect('cart')
     return redirect('cart')
 
+# In order/views.py, modify cart_add function:
+@require_POST
 @login_required
+@customer_required
+def cart_add(request, product_id):
+    """Add an item to the cart while respecting stock limits"""
+    try:
+        product = Product.objects.get(id=product_id, status='active', is_available=True)
+        
+        # Support both JSON and form submissions
+        payload = {}
+        if request.headers.get('Content-Type', '').startswith('application/json'):
+            try:
+                payload = json.loads(request.body or "{}")
+            except ValueError:
+                payload = {}
+        quantity = payload.get('quantity') or request.POST.get('quantity') or 1
+        try:
+            quantity = int(quantity)
+        except (TypeError, ValueError):
+            quantity = 1
+        if quantity < 1:
+            quantity = 1
+        
+        cart, _ = Cart.objects.get_or_create(customer=request.user)
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            defaults={'quantity': quantity}
+        )
+        
+        if created:
+            if cart_item.quantity != quantity:
+                cart_item.quantity = quantity
+                cart_item.save()
+        else:
+            new_quantity = cart_item.quantity + quantity
+            if not product.can_fulfill_order(new_quantity):
+                message = f"Only {product.get_available_quantity()} units available for {product.name}."
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': message}, status=400)
+                messages.warning(request, message)
+                return redirect('cart')
+            cart_item.quantity = new_quantity
+            cart_item.save()
+        
+        # Response handling
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': 'Product added to cart',
+                'cart_item_count': cart.get_item_count(),
+                'cart_total': str(cart.get_total())
+            })
+        
+        messages.success(request, f'"{product.name}" added to cart.')
+        return redirect('cart')
+            
+    except Product.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Product not found'}, status=404)
+    except ValidationError as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        messages.error(request, str(e))
+        return redirect('cart')
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        messages.error(request, 'Unable to add product to cart.')
+        return redirect('product_detail', slug=product.slug if 'product' in locals() else '')
+
+@login_required
+@customer_required
 def cart_remove(request, item_id):
     """Remove item from cart"""
-    cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+    cart_item = get_object_or_404(CartItem, id=item_id, cart__customer=request.user)
     product_name = cart_item.product.name
     cart_item.delete()
     
@@ -97,9 +149,13 @@ def cart_remove(request, item_id):
 
 @require_POST
 @login_required
+@customer_required
 def cart_update(request):
     """Update cart quantities"""
-    cart = get_object_or_404(Cart, user=request.user, active=True)
+    cart = Cart.objects.filter(customer=request.user).first()
+    if not cart:
+        messages.info(request, "Your cart is empty.")
+        return redirect('product_list')
     
     for key, value in request.POST.items():
         if key.startswith('quantity_'):
@@ -123,15 +179,51 @@ def cart_update(request):
     return redirect('cart')
 
 @login_required
+@customer_required
 def cart_clear(request):
     """Clear entire cart"""
-    cart = get_object_or_404(Cart, user=request.user, active=True)
+    cart = Cart.objects.filter(customer=request.user).first()
+    if not cart:
+        messages.info(request, "Your cart is already empty.")
+        return redirect('product_list')
+    
     cart.items.all().delete()
     
     messages.success(request, "Cart cleared successfully")
     return redirect('cart')
 
 # ==================== CHECKOUT VIEWS ====================
+
+def send_order_confirmation_email(order, request):
+    """Send order confirmation email immediately after order creation"""
+    subject = f'Order Confirmation #{order.order_number} - SokHub'
+    template_name = 'emails/order_confirmation.html'
+    
+    context = {
+        'order': order,
+        'order_items': order.items.all(),
+        'user': order.customer,
+        'settings': settings
+    }
+    
+    html_content = render_to_string(template_name, context)
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[order.customer.email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    
+    try:
+        email.send()
+    except Exception as e:
+        # Log error but don't fail order creation
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send order confirmation email: {str(e)}")
 
 @login_required
 @customer_required
@@ -155,7 +247,7 @@ def checkout_view(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Create order
+                    # Create order - IMMEDIATELY CONFIRMED regardless of payment
                     order = Order(
                         customer=request.user,
                         shipping_address=form.cleaned_data['shipping_address'],
@@ -165,10 +257,11 @@ def checkout_view(request):
                         payment_method=form.cleaned_data['payment_method'],
                         momo_number=form.cleaned_data.get('momo_number'),
                         customer_notes=form.cleaned_data.get('customer_notes', ''),
+                        status='confirmed',  # Set to confirmed immediately
+                        payment_status='pending',  # Payment verification happens separately
                     )
                     
-                    # For now, set first product's vendor as order vendor
-                    # In real app, you'd handle multiple vendors
+                    # Set vendor(s) - handle multiple vendors if needed
                     if cart_items:
                         first_item = cart_items[0]
                         order.vendor = first_item.product.vendor
@@ -187,15 +280,13 @@ def checkout_view(request):
                             total_price=cart_item.product.price * cart_item.quantity
                         )
                         order_item.save()
-                        
-                        # Commit stock (convert reservation to sale)
                         order_item.commit_stock()
                         
                         total_amount += order_item.total_price
                     
                     # Calculate totals
                     order.subtotal = total_amount
-                    order.shipping_cost = Decimal('0.00')  # Free shipping for now
+                    order.shipping_cost = Decimal('0.00')
                     order.total_amount = total_amount
                     order.save()
                     
@@ -211,7 +302,25 @@ def checkout_view(request):
                             request.user.customerprofile.shipping_address = form.cleaned_data['shipping_address']
                             request.user.customerprofile.save()
                     
-                    messages.success(request, f"Order #{order.order_number} placed successfully!")
+                    # Send order confirmation email immediately
+                    try:
+                        send_order_confirmation_email(order, request)
+                    except Exception as e:
+                        # Log but don't fail order creation
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Failed to send confirmation email: {str(e)}")
+                    
+                    # Notify vendor about new order
+                    if order.vendor:
+                        OrderNotification.objects.create(
+                            order=order,
+                            notification_type='status_change',
+                            recipient=order.vendor,
+                            message=f"New order #{order.order_number} received from {order.customer.username}. Amount: RWF {order.total_amount}. Please verify payment via phone."
+                        )
+                    
+                    messages.success(request, f"Order #{order.order_number} confirmed successfully! Confirmation email sent. Please contact vendor to verify payment.")
                     return redirect('order_confirmation', order_number=order.order_number)
             
             except Exception as e:
@@ -295,7 +404,7 @@ def customer_order_list(request):
         'total_spent': total_spent,
     }
     
-    return render(request, 'orders/customer/order_list.html', context)
+    return render(request, 'customer/order_list.html', context)
 
 @login_required
 @customer_required
@@ -375,7 +484,7 @@ def vendor_order_list(request):
         'deletion_requests': deletion_requests,
     }
     
-    return render(request, 'orders/vendor/order_list.html', context)
+    return render(request, 'vendor/order_list.html', context)
 
 @login_required
 @vendor_approved_required
@@ -400,6 +509,14 @@ def vendor_order_detail(request, order_number):
             old_status = order.status
             order = status_form.save()
             
+            # If order is marked as delivered, send confirmation email
+            if order.status == 'delivered' and old_status != 'delivered':
+                try:
+                    send_order_completion_email(order, request)
+                    messages.success(request, f"Order marked as delivered and confirmation email sent to customer.")
+                except Exception as e:
+                    messages.warning(request, f"Order status updated, but email could not be sent: {str(e)}")
+            
             # Create notification for customer
             OrderNotification.objects.create(
                 order=order,
@@ -420,7 +537,43 @@ def vendor_order_detail(request, order_number):
         'status_history': order.status_history.all()[:10],
     }
     
-    return render(request, 'orders/vendor/order_detail.html', context)
+    return render(request, 'vendor/order_detail.html', context)
+
+@login_required
+@vendor_approved_required
+def vendor_mark_payment_completed(request, order_number):
+    """Vendor marks payment as completed after phone verification"""
+    order = get_object_or_404(
+        Order,
+        order_number=order_number,
+        items__vendor=request.user
+    ).distinct()
+    
+    if request.method == 'POST':
+        transaction_id = request.POST.get('transaction_id', '')
+        
+        # Mark payment as completed
+        order.payment_status = 'completed'
+        order.payment_date = timezone.now()
+        if transaction_id:
+            order.momo_transaction_id = transaction_id
+        order.save()
+        
+        # Notify customer
+        OrderNotification.objects.create(
+            order=order,
+            notification_type='payment_received',
+            recipient=order.customer,
+            message=f"Payment for order #{order.order_number} has been verified and confirmed by vendor."
+        )
+        
+        messages.success(request, f"Payment for order #{order.order_number} marked as completed.")
+        return redirect('vendor_order_detail', order_number=order.order_number)
+    
+    context = {
+        'order': order,
+    }
+    return render(request, 'vendor/mark_payment.html', context)
 
 def vendor_report(request):
     """Vendor sales report view"""
@@ -678,3 +831,27 @@ def bulk_update_orders(request):
         messages.error(request, "Invalid bulk update request.")
     
     return redirect('vendor_order_list')
+
+def send_order_completion_email(order, request):
+    """Send order completion email to customer when vendor marks order as delivered"""
+    subject = f'Order #{order.order_number} Has Been Delivered!'
+    template_name = 'emails/order_confirmation.html'
+    
+    context = {
+        'order': order,
+        'order_items': order.items.all(),
+        'user': order.customer,
+        'settings': settings
+    }
+    
+    html_content = render_to_string(template_name, context)
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[order.customer.email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()

@@ -1,5 +1,4 @@
 # products/models.py
-from gettext import translation
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.dispatch import receiver
@@ -12,7 +11,7 @@ import uuid
 from django.conf import settings
 import os
 from django.utils.timezone import now
-
+from django.db import transaction
 
 def image_path(instance, filename):
 
@@ -185,7 +184,7 @@ class Product(models.Model):
         if not self.is_track_inventory:
             return True
         
-        with translation.atomic():
+        with transaction.atomic():
             # Lock the product row for update
             product = Product.objects.select_for_update().get(pk=self.pk)
             
@@ -204,7 +203,7 @@ class Product(models.Model):
         if not self.is_track_inventory:
             return
         
-        with translation.atomic():
+        with transaction.atomic():
             product = Product.objects.select_for_update().get(pk=self.pk)
             product.reservation_count = F('reservation_count') - quantity
             product.save(update_fields=['reservation_count'])
@@ -214,7 +213,7 @@ class Product(models.Model):
         if not self.is_track_inventory:
             return
         
-        with translation.atomic():
+        with transaction.atomic():
             product = Product.objects.select_for_update().get(pk=self.pk)
             
             # Update quantity and reservation count
@@ -230,7 +229,7 @@ class Product(models.Model):
     
     def restock(self, quantity):
         """Add stock to product"""
-        with translation.atomic():
+        with transaction.atomic():
             product = Product.objects.select_for_update().get(pk=self.pk)
             product.quantity = F('quantity') + quantity
             product.last_restocked = timezone.now()
@@ -248,6 +247,12 @@ class Product(models.Model):
             discount = ((self.compare_at_price - self.price) / self.compare_at_price) * 100
             return round(discount, 0)
         return 0
+    
+    def get_discount_amount(self):
+        """Return the absolute discount amount for display"""
+        if self.compare_at_price and self.compare_at_price > self.price:
+            return self.compare_at_price - self.price
+        return Decimal('0.00')
     
     def increment_view_count(self):
         """Increment view count"""
