@@ -1,4 +1,5 @@
 # orders/forms.py
+import re
 from django import forms
 from django.core.validators import MinValueValidator
 from .models import Order, CartItem, OrderNotification
@@ -23,9 +24,10 @@ class CheckoutForm(forms.ModelForm):
         max_length=15,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': '0788123456'
+            'placeholder': '078xxxxxxx or 072xxxxxxx'
         }),
-        label="Your MTN Momo Number"
+        label="Your Mobile Money Number",
+        help_text="Enter your 9-digit Mobile Money number"
     )
     
     customer_notes = forms.CharField(
@@ -52,7 +54,7 @@ class CheckoutForm(forms.ModelForm):
             }),
             'shipping_phone': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Phone number for delivery'
+                'placeholder': '078xxxxxxx or 072xxxxxxx'
             }),
             'shipping_notes': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -69,20 +71,35 @@ class CheckoutForm(forms.ModelForm):
         if self.customer and hasattr(self.customer, 'customerprofile'):
             profile = self.customer.customerprofile
             self.fields['shipping_address'].initial = profile.shipping_address
-            self.fields['shipping_phone'].initial = self.customer.phone
-    
+            
+            # Format phone to local format if it's in +250 format
+            if self.customer.phone:
+                phone = self.customer.phone
+                if phone.startswith('+250'):
+                    phone = '0' + phone[4:]  # Convert +25078xxxxxxx to 078xxxxxxx
+                self.fields['shipping_phone'].initial = phone
+    def clean_shipping_phone(self):
+        phone = self.cleaned_data.get('shipping_phone')
+        if phone and phone.startswith('0'):
+            # Remove 0, add +250
+            return f'+250{phone[1:]}'
+        elif phone:
+            raise forms.ValidationError("Phone must start with 0")
+        return phone
+
     def clean_momo_number(self):
-        momo_number = self.cleaned_data.get('momo_number')
+        momo = self.cleaned_data.get('momo_number')
         payment_method = self.cleaned_data.get('payment_method')
         
-        if payment_method == 'momo' and not momo_number:
-            raise forms.ValidationError("MTN Momo number is required for Momo payments.")
+        if payment_method == 'momo' and momo:
+            if momo.startswith('0'):
+                # Remove 0, add +250
+                return f'+250{momo[1:]}'
+            else:
+                raise forms.ValidationError("Mobile Money must start with 0")
         
-        if momo_number and not momo_number.startswith(('67', '68', '69', '65', '66')):
-            raise forms.ValidationError("Please enter a valid MTN Momo number.")
+        return momo
         
-        return momo_number
-    
     def clean(self):
         cleaned_data = super().clean()
         payment_method = cleaned_data.get('payment_method')
@@ -90,10 +107,10 @@ class CheckoutForm(forms.ModelForm):
         
         # Validate payment method specific requirements
         if payment_method == 'momo' and not momo_number:
-            self.add_error('momo_number', 'MTN Momo number is required for Momo payments.')
+            self.add_error('momo_number', 'Mobile Money number is required for Mobile Money payments.')
         
         return cleaned_data
-
+    
 class CartItemForm(forms.ModelForm):
     """Form for updating cart item quantity"""
     class Meta:

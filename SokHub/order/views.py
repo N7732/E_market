@@ -6,7 +6,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from django.http import JsonResponse, HttpResponse
+from django.http import Http404, JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count, F
@@ -65,7 +65,6 @@ def apply_coupon(request):
         return redirect('cart')
     return redirect('cart')
 
-# In order/views.py, modify cart_add function:
 @require_POST
 @login_required
 @customer_required
@@ -141,6 +140,16 @@ def cart_add(request, product_id):
 def cart_remove(request, item_id):
     """Remove item from cart"""
     cart_item = get_object_or_404(CartItem, id=item_id, cart__customer=request.user)
+    
+    # Release reserved stock before deleting
+    try:
+        cart_item.product.release_stock(cart_item.quantity)
+    except Exception as e:
+        # Log error but continue
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to release stock: {str(e)}")
+    
     product_name = cart_item.product.name
     cart_item.delete()
     
@@ -165,11 +174,22 @@ def cart_update(request):
                 quantity = int(value)
                 
                 if quantity < 1:
+                    # Release stock before deleting
+                    cart_item.product.release_stock(cart_item.quantity)
                     cart_item.delete()
-                elif cart_item.product.is_track_inventory and quantity > cart_item.product.quantity:
-                    messages.warning(request, 
-                        f"Only {cart_item.product.quantity} units available for {cart_item.product.name}")
                 else:
+                    # Calculate difference
+                    diff = quantity - cart_item.quantity
+                    if diff > 0:
+                        # Need to reserve more stock
+                        if not cart_item.product.reserve_stock(diff):
+                            messages.warning(request, 
+                                f"Not enough stock for {cart_item.product.name}")
+                            continue
+                    elif diff < 0:
+                        # Need to release some stock
+                        cart_item.product.release_stock(abs(diff))
+                    
                     cart_item.quantity = quantity
                     cart_item.save()
             except (CartItem.DoesNotExist, ValueError):
@@ -186,6 +206,16 @@ def cart_clear(request):
     if not cart:
         messages.info(request, "Your cart is already empty.")
         return redirect('product_list')
+    
+    # Release all reserved stock before clearing
+    for item in cart.items.all():
+        try:
+            item.product.release_stock(item.quantity)
+        except Exception as e:
+            # Log error but continue
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to release stock for {item.product.name}: {str(e)}")
     
     cart.items.all().delete()
     
@@ -238,8 +268,14 @@ def checkout_view(request):
     
     # Validate all items are in stock
     for item in cart_items:
+        item.product.refresh_from_db()
+        
         if not item.product.is_in_stock():
             messages.error(request, f"{item.product.name} is out of stock. Please remove it from cart.")
+            return redirect('cart')
+        
+        if not item.product.can_fulfill_order(item.quantity):
+            messages.error(request, f"Not enough stock for {item.product.name}. Available: {item.product.get_available_quantity()}")
             return redirect('cart')
     
     if request.method == 'POST':
@@ -247,7 +283,14 @@ def checkout_view(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Create order - IMMEDIATELY CONFIRMED regardless of payment
+                    # First, reserve stock for all items
+                    reserved_items = []
+                    for item in cart_items:
+                        if not item.product.reserve_stock(item.quantity):
+                            raise Exception(f"Cannot reserve stock for {item.product.name}")
+                        reserved_items.append(item)
+                    
+                    # Create order
                     order = Order(
                         customer=request.user,
                         shipping_address=form.cleaned_data['shipping_address'],
@@ -257,30 +300,31 @@ def checkout_view(request):
                         payment_method=form.cleaned_data['payment_method'],
                         momo_number=form.cleaned_data.get('momo_number'),
                         customer_notes=form.cleaned_data.get('customer_notes', ''),
-                        status='confirmed',  # Set to confirmed immediately
-                        payment_status='pending',  # Payment verification happens separately
+                        status='confirmed',
+                        payment_status='pending',
                     )
                     
-                    # Set vendor(s) - handle multiple vendors if needed
                     if cart_items:
                         first_item = cart_items[0]
                         order.vendor = first_item.product.vendor
                     
                     order.save()
                     
-                    # Create order items
+                    # Create order items and commit stock
                     total_amount = 0
-                    for cart_item in cart_items:
+                    for item in cart_items:
                         order_item = OrderItem(
                             order=order,
-                            product=cart_item.product,
-                            vendor=cart_item.product.vendor,
-                            price=cart_item.product.price,
-                            quantity=cart_item.quantity,
-                            total_price=cart_item.product.price * cart_item.quantity
+                            product=item.product,
+                            vendor=item.product.vendor,
+                            price=item.product.price,
+                            quantity=item.quantity,
+                            total_price=item.product.price * item.quantity
                         )
                         order_item.save()
-                        order_item.commit_stock()
+                        
+                        # Commit the reserved stock
+                        item.product.commit_stock(item.quantity)
                         
                         total_amount += order_item.total_price
                     
@@ -290,8 +334,9 @@ def checkout_view(request):
                     order.total_amount = total_amount
                     order.save()
                     
-                    # Clear cart
-                    cart.clear()
+                    # Clear cart WITHOUT releasing stock (stock already committed)
+                    # Just delete cart items without calling release_stock
+                    cart.items.all().delete()
                     
                     # Generate invoice PDF
                     order.generate_invoice_pdf()
@@ -302,43 +347,73 @@ def checkout_view(request):
                             request.user.customerprofile.shipping_address = form.cleaned_data['shipping_address']
                             request.user.customerprofile.save()
                     
-                    # Send order confirmation email immediately
+                    # Send order confirmation email
                     try:
                         send_order_confirmation_email(order, request)
                     except Exception as e:
-                        # Log but don't fail order creation
                         import logging
                         logger = logging.getLogger(__name__)
                         logger.error(f"Failed to send confirmation email: {str(e)}")
                     
-                    # Notify vendor about new order
+                    # Notify vendor
                     if order.vendor:
                         OrderNotification.objects.create(
                             order=order,
                             notification_type='status_change',
                             recipient=order.vendor,
-                            message=f"New order #{order.order_number} received from {order.customer.username}. Amount: RWF {order.total_amount}. Please verify payment via phone."
+                            message=f"New order #{order.order_number} received from {order.customer.username}. Amount: RWF {order.total_amount}."
                         )
                     
-                    messages.success(request, f"Order #{order.order_number} confirmed successfully! Confirmation email sent. Please contact vendor to verify payment.")
+                    messages.success(request, f"Order #{order.order_number} confirmed successfully!")
                     return redirect('order_confirmation', order_number=order.order_number)
             
             except Exception as e:
+                # If order creation fails, release any reserved stock
+                for item in cart_items:
+                    try:
+                        # CORRECT: Call release_stock on the product
+                        item.product.release_stock(item.quantity)
+                    except Exception as release_error:
+                        # Log but continue with other items
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Failed to release stock for {item.product.name}: {str(release_error)}")
+                
                 messages.error(request, f"Checkout failed: {str(e)}")
-                return redirect('checkout')
+                context = {
+                    'form': form,
+                    'cart': cart,
+                    'cart_items': cart_items,
+                    'subtotal': cart.get_total(),
+                    'shipping_cost': Decimal('0.00'),
+                    'total': cart.get_total(),
+                }
+                return render(request, 'orders/checkout.html', context)
+        
+        else:
+            # Form is invalid
+            context = {
+                'form': form,
+                'cart': cart,
+                'cart_items': cart_items,
+                'subtotal': cart.get_total(),
+                'shipping_cost': Decimal('0.00'),
+                'total': cart.get_total(),
+            }
+            return render(request, 'orders/checkout.html', context)
+    
     else:
+        # GET request
         form = CheckoutForm(customer=request.user)
-    
-    context = {
-        'form': form,
-        'cart': cart,
-        'cart_items': cart_items,
-        'subtotal': cart.get_total(),
-        'shipping_cost': Decimal('0.00'),
-        'total': cart.get_total(),
-    }
-    
-    return render(request, 'orders/checkout.html', context)
+        context = {
+            'form': form,
+            'cart': cart,
+            'cart_items': cart_items,
+            'subtotal': cart.get_total(),
+            'shipping_cost': Decimal('0.00'),
+            'total': cart.get_total(),
+        }
+        return render(request, 'orders/checkout.html', context)
 
 @login_required
 @customer_required
@@ -421,7 +496,7 @@ def customer_order_detail(request, order_number):
         'status_history': order.status_history.all()[:10],
     }
     
-    return render(request, 'orders/customer/order_detail.html', context)
+    return render(request, 'customer/order_detail.html', context)
 
 @login_required
 @vendor_approved_required
@@ -489,12 +564,38 @@ def vendor_order_list(request):
 @login_required
 @vendor_approved_required
 def vendor_order_detail(request, order_number):
-    """Vendor order detail view"""
-    order = get_object_or_404(
-        Order, 
-        order_number=order_number,
-        items__vendor=request.user
-    ).distinct()
+    """Vendor order detail view - handles duplicate order numbers"""
+    try:
+        # FIRST: Try to get the MOST RECENT order with this order number
+        # that belongs to this vendor
+        order = Order.objects.filter(
+            order_number=order_number,
+            items__vendor=request.user
+        ).distinct().order_by('-created_at').first()
+        
+        if not order:
+            # If no order found with vendor items, try any order
+            order = Order.objects.filter(order_number=order_number).order_by('-created_at').first()
+            
+            if not order:
+                raise Http404("Order not found")
+            
+            # Check if vendor has items in ANY of the duplicate orders
+            all_orders = Order.objects.filter(order_number=order_number)
+            vendor_has_items = False
+            
+            for ord in all_orders:
+                if ord.items.filter(vendor=request.user).exists():
+                    vendor_has_items = True
+                    order = ord  # Use this order instead
+                    break
+            
+            if not vendor_has_items:
+                messages.error(request, "You don't have permission to view this order.")
+                return redirect('vendor_order_list')
+        
+    except Order.DoesNotExist:
+        raise Http404("Order not found")
     
     # Mark vendor notifications as read
     order.notifications.filter(recipient=request.user, is_read=False).update(is_read=True)

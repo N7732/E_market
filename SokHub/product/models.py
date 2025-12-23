@@ -10,6 +10,7 @@ from decimal import Decimal
 import uuid
 from django.conf import settings
 import os
+from django.db.models.expressions import CombinedExpression
 from django.utils.timezone import now
 from django.db import transaction
 
@@ -161,8 +162,14 @@ class Product(models.Model):
     
     def get_available_quantity(self):
         """Get available quantity after deducting reservations"""
-        return max(0, self.quantity - self.reservation_count)
-    
+    # SIMPLE VERSION - just do the calculation
+        try:
+            return max(0, self.quantity - self.reservation_count)
+        except:
+            # If there's any error, return a safe value
+            return 0
+        
+
     def is_in_stock(self):
         """Check if product is in stock"""
         if not self.is_track_inventory:
@@ -187,6 +194,7 @@ class Product(models.Model):
         with transaction.atomic():
             # Lock the product row for update
             product = Product.objects.select_for_update().get(pk=self.pk)
+            available_qty = product.quantity - product.reservation_count
             
             if not product.allow_backorder and product.get_available_quantity() < quantity:
                 return False
@@ -214,18 +222,26 @@ class Product(models.Model):
             return
         
         with transaction.atomic():
-            product = Product.objects.select_for_update().get(pk=self.pk)
+            # Use direct update and get the result
+            from django.db.models import F
             
-            # Update quantity and reservation count
-            product.quantity = F('quantity') - quantity
-            product.reservation_count = F('reservation_count') - quantity
-            product.purchase_count = F('purchase_count') + quantity
+            # Update using F() expressions
+            updated = Product.objects.filter(pk=self.pk).update(
+                quantity=F('quantity') - quantity,
+                reservation_count=F('reservation_count') - quantity,
+                purchase_count=F('purchase_count') + quantity
+            )
             
-            # Update last restocked if stock is low
-            if product.quantity <= product.low_stock_threshold:
-                product.last_restocked = timezone.now()
-            
-            product.save(update_fields=['quantity', 'reservation_count', 'purchase_count', 'last_restocked'])
+            if updated:
+                # Refresh to get actual values
+                self.refresh_from_db()
+                
+                # Now check if low stock (with actual integer values)
+                if self.quantity <= self.low_stock_threshold:
+                    self.last_restocked = timezone.now()
+                    self.save(update_fields=['last_restocked'])
+    
+    
     
     def restock(self, quantity):
         """Add stock to product"""

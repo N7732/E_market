@@ -357,6 +357,24 @@ class Order(models.Model):
         # Commit stock (convert reservations to actual sales)
         for item in self.items.all():
             item.commit_stock()
+            
+    def save(self, *args, **kwargs):
+        # Generate order number if not set
+        if not self.order_number:
+            self.order_number = self.generate_order_number()
+        
+        # Ensure uniqueness even if manually set
+        if self.pk is None:  # New order
+            while Order.objects.filter(order_number=self.order_number).exists():
+                self.order_number = self.generate_order_number()
+        
+        super().save(*args, **kwargs)
+    
+    def generate_order_number(self):
+        """Generate unique order number"""
+        date_str = timezone.now().strftime("%Y%m%d")
+        unique_id = uuid.uuid4().hex[:6].upper()
+        return f"ORD-{date_str}-{unique_id}"
 
 class OrderItem(models.Model):
     """Individual items in an order"""

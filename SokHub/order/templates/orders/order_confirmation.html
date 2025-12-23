@@ -123,11 +123,11 @@
                         
                         <div class="text-center">
                             <p class="text-muted mb-4">
-                                A confirmation email has been sent to <strong>john.smith@email.com</strong>
+                                A confirmation email has been sent to <strong>{{ customer_email }}</strong>
                             </p>
                             
                             <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <a href="customer/order_list.html" class="btn btn-primary btn-lg">
+                                <a href="{% url 'customer_order_list' %}" class="btn btn-primary btn-lg">
                                     <i class="bi bi-list-ul"></i> View My Orders
                                 </a>
                                 <a href="/" class="btn btn-outline-secondary btn-lg">
