@@ -1,20 +1,21 @@
-# Core
+
+# Core Django
 Django==4.2.7
 djangorestframework==3.14.0
-djangorestframework-simplejwt==5.3.0
+djangorestframework-simplejwt==5.2.2
 
 # PDF Generation
 reportlab==4.0.4
-xhtml2pdf==0.2.8
-pillow==10.1.0
+xhtml2pdf==0.2.10
+pillow==9.5.0  # CHANGED: More stable version for Windows
 
 # Security
-cryptography==38.0.
+cryptography==41.0.7  # CHANGED: Compatible version
 django-cors-headers==4.2.0
 
 # Forms & UI
 django-crispy-forms==2.1
-crispy-bootstrap5==0.7
+crispy-bootstrap5==2023.8
 
 # Development
 python-dotenv==1.0.0

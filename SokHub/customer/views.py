@@ -1,4 +1,5 @@
 # customer/views.py
+from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
@@ -24,6 +25,11 @@ from django.db import transaction
 from django.db.models.signals import post_save as model_post_save
 from django.utils import timezone
 import logging
+
+from django.db.models import Q, Avg, F, Sum, Count
+
+from order.models import Order, OrderItem
+from product.models import Product
 
 from .form import UserRegistrationForm, LoginForm, VendorProfileForm, CustomerProfileForm
 from .Decorator import vendor_required, customer_required, vendor_approved_required
@@ -534,18 +540,75 @@ def customer_dashboard(request):
 @login_required
 @vendor_approved_required
 def vendor_dashboard(request):
-    """Vendor dashboard with green/red theme"""
-    vendor_profile = get_object_or_404(VendorProfile, user=request.user)
+    """Vendor dashboard with real data"""
+    if not hasattr(request.user, 'vendorprofile'):
+        messages.error(request, "You need to be a vendor to access this page.")
+        return redirect('home')
+    
+    vendor_profile = request.user.vendorprofile
+    
+    # Get products for this vendor
+    vendor_products = Product.objects.filter(vendor=request.user, is_available=True)
+    
+    # Calculate available stock (if you track initial stock and purchases)
+    # This assumes you have a way to calculate available stock
+    products_with_stock = []
+    low_stock_items = []
+    low_stock_threshold = 5
+    
+    for product in vendor_products:
+        # If you track initial stock somewhere, use it
+        # Otherwise, use quantity field or calculate from something else
+        current_stock = product.quantity if hasattr(product, 'quantity') else 0
+        
+        if current_stock <= low_stock_threshold:
+            low_stock_items.append(product)
+    
+    # Get vendor's order items
+    vendor_order_items = OrderItem.objects.filter(product__in=vendor_products)
+    
+    # Get distinct order IDs
+    order_ids = vendor_order_items.values_list('order_id', flat=True).distinct()
+    vendor_orders = Order.objects.filter(id__in=order_ids)
+    
+    # Calculate statistics
+    total_orders = vendor_orders.count()
+    
+    # Recent orders
+    one_week_ago = timezone.now() - timedelta(days=7)
+    recent_orders = vendor_orders.filter(
+        created_at__gte=one_week_ago
+    ).order_by('-created_at')[:5]
+    
+    # Count by status
+    pending_orders = vendor_orders.filter(status='pending').count()
+    processing_orders = vendor_orders.filter(status='processing').count()
+    completed_orders = vendor_orders.filter(
+        Q(status='completed') | Q(status='delivered')
+    ).count()
+    
+    # Calculate revenue
+    total_revenue = 0
+    completed_items = vendor_order_items.filter(
+        order__status__in=['completed', 'delivered']
+    )
+    for item in completed_items:
+        total_revenue += float(item.price) * item.quantity
+    
     context = {
         'vendor': vendor_profile,
+        'total_orders': total_orders,
+        'recent_orders': recent_orders,
+        'pending_orders': pending_orders,
+        'processing_orders': processing_orders,
+        'completed_orders': completed_orders,
+        'total_revenue': total_revenue,
+        'low_stock_items': low_stock_items[:3],  # Limit to 3 items
+        'low_stock_count': len(low_stock_items),
+        'low_stock_threshold': low_stock_threshold,
+        'rating': getattr(vendor_profile, 'average_rating', 0) or 0,
+        'momo_number': getattr(vendor_profile, 'momo_number', 'Not set'),
         'is_approved': vendor_profile.is_approved,
-        'theme': {
-            'success': '#00FF00',  # Green
-            'warning': '#FFA500',  # Orange
-            'danger': '#FF0000',   # Red
-            'info': '#006400',     # Dark Green
-            'background': '#f0f8f0',  # Light green background
-            'text': '#1a1a1a'
-        }
     }
+    
     return render(request, 'vendor/dashboard.html', context)

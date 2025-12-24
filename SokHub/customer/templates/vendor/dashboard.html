@@ -204,27 +204,27 @@
     }
     
     .status-pending {
-        background-color: rgba(255, 193, 7, 0.1);
+        background-color: rgba(255, 193, 7, 0.15);
         color: #856404;
-        border: 1px solid rgba(255, 193, 7, 0.2);
+        border: 1px solid rgba(255, 193, 7, 0.3);
     }
     
     .status-processing {
-        background-color: rgba(23, 162, 184, 0.1);
+        background-color: rgba(23, 162, 184, 0.15);
         color: #0c5460;
-        border: 1px solid rgba(23, 162, 184, 0.2);
+        border: 1px solid rgba(23, 162, 184, 0.3);
     }
     
     .status-completed {
-        background-color: rgba(40, 167, 69, 0.1);
+        background-color: rgba(40, 167, 69, 0.15);
         color: #155724;
-        border: 1px solid rgba(40, 167, 69, 0.2);
+        border: 1px solid rgba(40, 167, 69, 0.3);
     }
     
     .status-cancelled {
-        background-color: rgba(220, 53, 69, 0.1);
+        background-color: rgba(220, 53, 69, 0.15);
         color: #721c24;
-        border: 1px solid rgba(220, 53, 69, 0.2);
+        border: 1px solid rgba(220, 53, 69, 0.3);
     }
     
     /* Dashboard header */
@@ -324,10 +324,10 @@
                 <div class="stat-icon icon-magenta">
                     <i class="fas fa-shopping-bag"></i>
                 </div>
-                <h3 class="fw-bold mb-1 text-dark">0</h3>
+                <h3 class="fw-bold mb-1 text-dark">{{ total_orders }}</h3>
                 <p class="text-muted mb-0">Total Orders</p>
                 <div class="small text-magenta mt-2">
-                    <i class="fas fa-chart-line me-1"></i> 0% change
+                    <i class="fas fa-chart-line me-1"></i> All time
                 </div>
             </div>
         </div>
@@ -337,10 +337,10 @@
                 <div class="stat-icon icon-warning">
                     <i class="fas fa-clock"></i>
                 </div>
-                <h3 class="fw-bold mb-1 text-dark">0</h3>
+                <h3 class="fw-bold mb-1 text-dark">{{ pending_orders }}</h3>
                 <p class="text-muted mb-0">Pending Orders</p>
                 <div class="small text-muted mt-2">
-                    Needs attention
+                    {% if pending_orders > 0 %}Needs attention{% else %}All processed{% endif %}
                 </div>
             </div>
         </div>
@@ -350,10 +350,10 @@
                 <div class="stat-icon icon-success">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <h3 class="fw-bold mb-1 text-dark">0</h3>
+                <h3 class="fw-bold mb-1 text-dark">{{ completed_orders }}</h3>
                 <p class="text-muted mb-0">Completed Orders</p>
                 <div class="small text-success mt-2">
-                    All delivered
+                    {% if total_revenue %}RWF {{ total_revenue|floatformat:0 }}{% else %}No revenue{% endif %}
                 </div>
             </div>
         </div>
@@ -363,10 +363,10 @@
                 <div class="stat-icon icon-danger">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
-                <h3 class="fw-bold mb-1 text-dark">0</h3>
+                <h3 class="fw-bold mb-1 text-dark">{{ low_stock_count }}</h3>
                 <p class="text-muted mb-0">Low Stock Items</p>
                 <div class="small text-danger mt-2">
-                    Restock needed
+                    {% if low_stock_count > 0 %}Restock needed{% else %}Stock good{% endif %}
                 </div>
             </div>
         </div>
@@ -404,12 +404,37 @@
                                         <strong class="text-dark">#{{ order.order_number }}</strong>
                                     </td>
                                     <td>{{ order.created_at|date:"M d, Y" }}</td>
-                                    <td>{{ order.customer.username|truncatechars:15 }}</td>
-                                    <td class="text-dark fw-medium">{{ order.total_amount }} RWF</td>
                                     <td>
-                                        <span class="status-badge status-{{ order.status|lower }}">
-                                            {{ order.status|title }}
-                                        </span>
+                                        {% if order.customer.get_full_name %}
+                                            {{ order.customer.get_full_name|truncatechars:15 }}
+                                        {% else %}
+                                            {{ order.customer.username|truncatechars:15 }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-medium">
+                                        {% if order.total_amount %}
+                                            RWF {{ order.total_amount|floatformat:0 }}
+                                        {% else %}
+                                            {% comment %} Calculate vendor-specific amount {% endcomment %}
+                                            {% with vendor_items=order.items.filter product__vendor=vendor %}
+                                                RWF {{ vendor_items.total|default:"0" }}
+                                            {% endwith %}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                        <span class="status-badge status-pending">Pending</span>
+                                        {% elif order.status == 'confirmed' %}
+                                        <span class="badge bg-info">Confirmed</span>
+                                        {% elif order.status == 'processing' %}
+                                        <span class="status-badge status-processing">Processing</span>
+                                        {% elif order.status == 'completed' or order.status == 'delivered' %}
+                                        <span class="status-badge status-completed">Completed</span>
+                                        {% elif order.status == 'cancelled' %}
+                                        <span class="status-badge status-cancelled">Cancelled</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ order.get_status_display|default:order.status|title }}</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
@@ -417,6 +442,13 @@
                                                class="btn btn-outline-magenta" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            {% if order.payment_status == 'pending' %}
+                                            <a href="{% url 'vendor_mark_payment_completed' order_number=order.order_number %}" 
+                                               class="btn btn-outline-success"
+                                               title="Mark as Paid">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -456,20 +488,20 @@
                         </a>
                     </div>
                     <div class="col-md-3 col-6">
-                        <a href="{% url 'vendor_analytics' %}" class="text-decoration-none">
+                        <a href="{% url 'vendor_reports' %}" class="text-decoration-none">
                             <div class="quick-action-card">
                                 <i class="fas fa-chart-bar"></i>
-                                <h6 class="fw-semibold mb-1 text-dark">Analytics</h6>
+                                <h6 class="fw-semibold mb-1 text-dark">Reports</h6>
                                 <p class="small text-muted mb-0">Sales reports</p>
                             </div>
                         </a>
                     </div>
                     <div class="col-md-3 col-6">
-                        <a href="{% url 'vendor_reports' %}" class="text-decoration-none">
+                        <a href="{% url 'vendor_order_list' %}" class="text-decoration-none">
                             <div class="quick-action-card">
-                                <i class="fas fa-file-pdf"></i>
-                                <h6 class="fw-semibold mb-1 text-dark">Reports</h6>
-                                <p class="small text-muted mb-0">Export data</p>
+                                <i class="fas fa-list-check"></i>
+                                <h6 class="fw-semibold mb-1 text-dark">Manage Orders</h6>
+                                <p class="small text-muted mb-0">All orders</p>
                             </div>
                         </a>
                     </div>
@@ -486,7 +518,7 @@
                 <div class="mb-4">
                     <label class="small text-muted mb-2 d-block">MOMO PAYMENT NUMBER</label>
                     <div class="d-flex align-items-center">
-                        <h5 class="text-magenta mb-0 me-2">{{ vendor.get_momo_number|default:"Not set" }}</h5>
+                        <h5 class="text-magenta mb-0 me-2">{{ vendor.momo_number|default:"Not set" }}</h5>
                         {% if vendor.admin_override_momo %}
                         <span class="badge bg-warning">Admin Override</span>
                         {% endif %}
@@ -499,20 +531,21 @@
                         <div class="d-flex align-items-center">
                             <div class="rating-stars me-2">
                                 {% for i in "12345"|make_list %}
-                                    {% if forloop.counter <= vendor.rating %}
+                                    {% if forloop.counter <= rating|floatformat:0|add:"0" %}
                                         <i class="fas fa-star text-warning"></i>
                                     {% else %}
                                         <i class="far fa-star text-warning"></i>
                                     {% endif %}
                                 {% endfor %}
                             </div>
-                            <span class="fw-bold text-dark">{{ vendor.rating|default:"0.0" }}/5.0</span>
+                            <span class="fw-bold text-dark">{{ rating|default:"0.0"|floatformat:1 }}/5.0</span>
                         </div>
                     </div>
                     
                     <div class="list-group-item px-0">
                         <label class="small text-muted mb-2 d-block">TOTAL SALES</label>
-                        <h6 class="mb-0 fw-bold text-dark">{{ vendor.total_sales|default:"0" }} orders</h6>
+                        <h6 class="mb-0 fw-bold text-dark">{{ total_orders }} orders</h6>
+                        <small class="text-muted">RWF {{ total_revenue|default:"0"|floatformat:0 }}</small>
                     </div>
                     
                     <div class="list-group-item px-0 pb-0">
@@ -540,15 +573,15 @@
                 </h4>
                 
                 {% if low_stock_items %}
-                    {% for item in low_stock_items %}
+                    {% for product in low_stock_items %}
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div>
-                            <p class="mb-0 fw-medium text-dark">{{ item.product.name|truncatechars:20 }}</p>
+                            <p class="mb-0 fw-medium text-dark">{{ product.name|truncatechars:20 }}</p>
                             <small class="text-danger">
-                                <i class="fas fa-box me-1"></i>Only {{ item.stock }} left
+                                <i class="fas fa-box me-1"></i>Only {{ product.stock|default:0 }} left
                             </small>
                         </div>
-                        <a href="{% url 'vendor_update_product' item.product.id %}" 
+                        <a href="{% url 'vendor_edit_product' product.id %}" 
                            class="btn btn-sm btn-outline-danger">
                             Restock
                         </a>
@@ -593,29 +626,6 @@ document.addEventListener('DOMContentLoaded', function() {
     cards.forEach(card => {
         card.style.transition = 'all 0.2s ease';
     });
-    
-    // Update current date and time
-    function updateDateTime() {
-        const now = new Date();
-        const options = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
-        const dateTimeStr = now.toLocaleDateString('en-US', options);
-        
-        const dateElement = document.querySelector('.current-date-time');
-        if (dateElement) {
-            dateElement.textContent = dateTimeStr;
-        }
-    }
-    
-    // Update time every minute
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
 });
 </script>
 {% endblock %}

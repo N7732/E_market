@@ -1,4 +1,5 @@
 # orders/views.py
+from datetime import timedelta
 from decimal import Decimal
 import json
 from django.forms import ValidationError
@@ -644,11 +645,29 @@ def vendor_order_detail(request, order_number):
 @vendor_approved_required
 def vendor_mark_payment_completed(request, order_number):
     """Vendor marks payment as completed after phone verification"""
-    order = get_object_or_404(
-        Order,
-        order_number=order_number,
-        items__vendor=request.user
-    ).distinct()
+    try:
+        # Get the specific order that belongs to this vendor
+        order = Order.objects.filter(
+            order_number=order_number,
+            items__vendor=request.user
+        ).distinct().first()
+        
+        if not order:
+            messages.error(request, "Order not found or you don't have permission to access it.")
+            return redirect('vendor_orders')
+            
+    except Order.MultipleObjectsReturned:
+        # If somehow multiple orders exist, get the first one
+        orders = Order.objects.filter(
+            order_number=order_number,
+            items__vendor=request.user
+        ).distinct()
+        order = orders.first()
+        
+        # Log this issue for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Multiple orders found for order_number: {order_number}, count: {orders.count()}")
     
     if request.method == 'POST':
         transaction_id = request.POST.get('transaction_id', '')
@@ -675,54 +694,172 @@ def vendor_mark_payment_completed(request, order_number):
         'order': order,
     }
     return render(request, 'vendor/mark_payment.html', context)
-
+@login_required
+@vendor_approved_required
+@vendor_required
 def vendor_report(request):
-    """Vendor sales report view"""
+    """Vendor sales report view - with shorter trend data"""
     if not request.user.is_authenticated or request.user.user_type != 'vendor':
         messages.error(request, "You must be logged in as a vendor to access this page.")
         return redirect('login')
     
-    # Get sales data aggregated by product
-    sales_data = list(OrderItem.objects.filter(
+    # Get vendor profile
+    vendor_profile = request.user.vendorprofile
+    
+    # Get date range from request
+    date_range = request.GET.get('date_range', '30d')
+    end_date = timezone.now()
+    
+    if date_range == '30d':
+        start_date = end_date - timedelta(days=30)
+    elif date_range == '90d':
+        start_date = end_date - timedelta(days=90)
+    elif date_range == '1y':
+        start_date = end_date - timedelta(days=365)
+    elif date_range == 'all':
+        start_date = None
+    else:
+        start_date = end_date - timedelta(days=30)
+    
+    # Base queryset for vendor's order items
+    order_items_qs = OrderItem.objects.filter(
         vendor=request.user,
         order__status='delivered'
-    ).values('product__name').annotate(
+    )
+    
+    # Apply date filter if specified
+    if start_date:
+        order_items_qs = order_items_qs.filter(
+            order__created_at__gte=start_date,
+            order__created_at__lte=end_date
+        )
+    
+    # Get sales data aggregated by product
+    sales_data = order_items_qs.values(
+        'product__name',
+        'product__id'
+    ).annotate(
         total_quantity=Sum('quantity'),
         total_revenue=Sum('total_price')
-    ).order_by('-total_revenue'))
+    ).order_by('-total_revenue')
     
-    # Calculate total revenue for percentage calculations
-    total_revenue = sum(item['total_revenue'] for item in sales_data if item['total_revenue'])
-    
-    # Add percentage to each item for progress bars
+    # Convert QuerySet to list and handle Decimal conversion
+    sales_data_list = []
     for item in sales_data:
+        # Convert Decimal to float for JSON serialization
+        sales_data_list.append({
+            'product__name': item['product__name'],
+            'product__id': item['product__id'],
+            'total_quantity': item['total_quantity'] or 0,
+            'total_revenue': float(item['total_revenue']) if item['total_revenue'] else 0.0,
+        })
+    
+    # Calculate totals
+    total_revenue = sum(item['total_revenue'] for item in sales_data_list)
+    total_quantity = sum(item['total_quantity'] for item in sales_data_list)
+    
+    # Add percentage for progress bars
+    for item in sales_data_list:
         if total_revenue > 0 and item['total_revenue']:
             item['percentage'] = round((item['total_revenue'] / total_revenue) * 100, 1)
         else:
             item['percentage'] = 0
     
-    # Get monthly trend data for chart
+    # Get top 5 products for pie chart
+    top_products = sales_data_list[:5] if sales_data_list else []
+    top_products_labels = [item['product__name'] for item in top_products]
+    top_products_revenue = [item['total_revenue'] for item in top_products]
+    
+    # **SHORTER TREND DATA - Last 6 months instead of 12**
     monthly_trend = OrderItem.objects.filter(
         vendor=request.user,
-        order__status='delivered'
+        order__status='delivered',
+        order__created_at__gte=end_date - timedelta(days=180)  # 6 months
     ).annotate(
         month=TruncMonth('order__created_at')
     ).values('month').annotate(
         monthly_revenue=Sum('total_price'),
-        order_count=Count('id')
+        monthly_quantity=Sum('quantity')
     ).order_by('month')
     
+    # Convert monthly trend Decimal to float
+    monthly_trend_list = []
+    for item in monthly_trend:
+        monthly_trend_list.append({
+            'month': item['month'],
+            'monthly_revenue': float(item['monthly_revenue']) if item['monthly_revenue'] else 0.0,
+            'monthly_quantity': item['monthly_quantity'] or 0,
+        })
+    
+    # Format trend data for chart - ONLY 6 MONTHS
+    trend_labels = []
+    trend_revenue = []
+    trend_quantity = []
+    
+    # Only get last 6 months
+    for i in range(6):
+        month_date = end_date - timedelta(days=30 * (5 - i))
+        month_str = month_date.strftime('%b')  # Only month abbreviation, no year
+        
+        # Find matching month data
+        month_data = next((item for item in monthly_trend_list if 
+                          item['month'].month == month_date.month and 
+                          item['month'].year == month_date.year), None)
+        
+        trend_labels.append(month_str)
+        if month_data:
+            trend_revenue.append(month_data['monthly_revenue'])
+            trend_quantity.append(month_data['monthly_quantity'])
+        else:
+            trend_revenue.append(0)
+            trend_quantity.append(0)
+    
+    # Get summary statistics
+    total_products = len(sales_data_list)
+    avg_revenue_per_product = total_revenue / total_products if total_products > 0 else 0
+    top_product_revenue = top_products[0]['total_revenue'] if top_products else 0
+    
+    # Get all categories for filter dropdown
+    from product.models import Product
+    categories = Product.objects.filter(vendor=request.user).values_list(
+        'category__name', flat=True
+    ).distinct().exclude(category__name__isnull=True)
+    
+    # Prepare context
     context = {
-        'sales_data': json.dumps(sales_data) if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else sales_data,
-        'monthly_trend': list(monthly_trend),
-        'total_revenue': total_revenue,
-        'total_products': len(sales_data),
-        'total_units': sum(item['total_quantity'] for item in sales_data if item['total_quantity']),
-        'avg_revenue_per_product': total_revenue / len(sales_data) if sales_data else 0,
+        'vendor': vendor_profile,
+        'sales_data': sales_data_list,
+        'total_revenue': float(total_revenue) if isinstance(total_revenue, Decimal) else total_revenue,
+        'total_quantity': total_quantity,
+        'total_products': total_products,
+        'avg_revenue_per_product': float(avg_revenue_per_product) if isinstance(avg_revenue_per_product, Decimal) else avg_revenue_per_product,
+        'top_product_revenue': float(top_product_revenue) if isinstance(top_product_revenue, Decimal) else top_product_revenue,
+        
+        # Chart data - SHORTER
+        'top_products_labels': top_products_labels,
+        'top_products_revenue': top_products_revenue,
+        'trend_labels': trend_labels,  # Now only 6 items
+        'trend_revenue': trend_revenue,  # Now only 6 items
+        'trend_quantity': trend_quantity,  # Now only 6 items
+        
+        # Filter data
+        'date_range': date_range,
+        'start_date': start_date,
+        'end_date': end_date,
+        'categories': categories,
     }
     
+    # AJAX request for chart updates
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse(context)
+        return JsonResponse({
+            'sales_data': sales_data_list,
+            'total_revenue': float(total_revenue) if isinstance(total_revenue, Decimal) else total_revenue,
+            'top_products_labels': top_products_labels,
+            'top_products_revenue': top_products_revenue,
+            'trend_labels': trend_labels,
+            'trend_revenue': trend_revenue,
+            'trend_quantity': trend_quantity,
+        })
     
     return render(request, 'vendor/sale_reports.html', context)
 
