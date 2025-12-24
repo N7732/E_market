@@ -1,0 +1,13 @@
+django>=4.2
+googlemaps
+polyline
+folium
+geopy
+SpeechRecognition
+pyttsx3
+gTTS
+openai-whisper
+numpy
+librosa
+requests
+pyaudio

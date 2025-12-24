@@ -12,16 +12,19 @@ class ChatService:
     
     def create_chat_session(self, user, context: Dict = None) -> ChatSession:
         """Create a new chat session"""
-        session_id = f"{user.id}_{get_random_string(10)}"
-        
+        if user:
+            session_id = f"{user.id}_{get_random_string(10)}"
+        else:
+            session_id = f"anon_{get_random_string(15)}"
+            
         session = ChatSession.objects.create(
             user=user,
             session_id=session_id,
             context=context or {},
             metadata={
-                'user_agent': context.get('user_agent', ''),
-                'ip_address': context.get('ip_address', ''),
-                'platform': context.get('platform', 'web')
+                'user_agent': context.get('user_agent', '') if context else '',
+                'ip_address': context.get('ip_address', '') if context else '',
+                'platform': context.get('platform', 'web') if context else 'web'
             }
         )
         
@@ -40,11 +43,12 @@ class ChatService:
         """Get existing session or create new one"""
         if session_id:
             try:
-                session = ChatSession.objects.get(
-                    session_id=session_id,
-                    user=user,
-                    is_active=True
-                )
+                # If user is None, we just rely on session_id being unique/secret
+                kwargs = {'session_id': session_id, 'is_active': True}
+                if user:
+                    kwargs['user'] = user
+                
+                session = ChatSession.objects.get(**kwargs)
                 
                 # Check if session timed out
                 if datetime.now() - session.updated_at > self.session_timeout:
@@ -106,6 +110,9 @@ class ChatService:
     def store_conversation_memory(self, user, key: str, value: str, 
                                  confidence: float = 1.0):
         """Store important information from conversation"""
+        if not user:
+            return None
+            
         memory, created = ConversationMemory.objects.update_or_create(
             user=user,
             key=key,
@@ -120,6 +127,9 @@ class ChatService:
     
     def get_conversation_memories(self, user, prefix: str = None) -> List[Dict]:
         """Get stored conversation memories"""
+        if not user:
+            return []
+            
         query = ConversationMemory.objects.filter(user=user)
         if prefix:
             query = query.filter(key__startswith=prefix)
@@ -140,7 +150,6 @@ class ChatService:
         messages = ChatMessage.objects.filter(session=session)
         
         user_messages = messages.filter(role='user')[:5]
-        assistant_messages = messages.filter(role='assistant')[:5]
         
         summary_parts = []
         
@@ -165,6 +174,13 @@ class ChatService:
     
     def _get_welcome_message(self, user) -> str:
         """Get personalized welcome message"""
+        if not user:
+            return (
+                "Hello! I'm your SokHub AI assistant. "
+                "I can help you find products. "
+                "How can I help you today?"
+            )
+            
         # Check if returning user
         previous_sessions = ChatSession.objects.filter(
             user=user
@@ -172,13 +188,11 @@ class ChatService:
         
         if previous_sessions.exists():
             last_session = previous_sessions.first()
-            last_summary = self.generate_conversation_summary(last_session)
             
             # Get user memories
             memories = self.get_conversation_memories(user)
             
             if memories:
-                # Personalized welcome back
                 return (
                     f"Welcome back! I remember you were interested in {memories[0]['value']}. "
                     f"How can I help you today?"
@@ -198,17 +212,20 @@ class ChatService:
         session.is_active = False
         session.save()
         
-        # Generate final summary and store
-        summary = self.generate_conversation_summary(session)
-        self.store_conversation_memory(
-            user=session.user,
-            key=f"session_summary_{session.session_id}",
-            value=summary,
-            confidence=0.8
-        )
+        if session.user:
+            # Generate final summary and store
+            summary = self.generate_conversation_summary(session)
+            self.store_conversation_memory(
+                user=session.user,
+                key=f"session_summary_{session.session_id}",
+                value=summary,
+                confidence=0.8
+            )
     
     def get_active_sessions_count(self, user) -> int:
         """Get count of active sessions for user"""
+        if not user:
+            return 0
         return ChatSession.objects.filter(
             user=user,
             is_active=True

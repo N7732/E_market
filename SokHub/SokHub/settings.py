@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'customer',
     'product',
     'order',
+    'AI_Assistant',
 ]
 
 MIDDLEWARE = [
