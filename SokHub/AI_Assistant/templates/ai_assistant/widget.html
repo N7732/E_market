@@ -148,13 +148,13 @@
 
 <div id="ai-assistant-widget">
     <button id="ai-star-btn" onclick="toggleAIChat()">
-        <span id="ai-star-icon">★</span>
+        <span id="ai-star-icon">✨</span>
     </button>
 
     <div id="ai-chat-window">
         <div class="ai-header">
             <h3>AI Assistant</h3>
-            <span class="ai-close" onclick="toggleAIChat()">×</span>
+            <span class="ai-close" onclick="toggleAIChat()">✨</span>
         </div>
         <div class="ai-messages" id="ai-messages">
             <!-- Messages will be added here -->
@@ -221,7 +221,8 @@
         input.value = '';
 
         try {
-            const response = await fetch('/ai/api/chat/send/', {
+            // add cache-busting query param to avoid stale cached responses
+            const response = await fetch('/ai/api/chat/send/?_=' + Date.now(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

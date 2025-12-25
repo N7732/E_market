@@ -56,5 +56,5 @@ class VoiceCommand(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class VoiceProfile(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     features = models.JSONField()

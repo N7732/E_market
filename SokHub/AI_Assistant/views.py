@@ -17,7 +17,7 @@ except ImportError as e:
     HAS_SERVICE = False
 
 try:
-    from .service import EnhancedAIService
+    from .service import EnhancedAIService, enhanced_ai_service
     HAS_ENHANCED_AI = True
 except ImportError as e:
     print(f"EnhancedAIService import error: {e}")
@@ -43,105 +43,9 @@ def ai_assistant(request):
 
 @csrf_exempt
 def ai_simple_chat(request):
-    """SIMPLE WORKING AI CHAT ENDPOINT - Use this to test"""
-    try:
-        if request.method != 'POST':
-            return JsonResponse({
-                'success': False,
-                'error': 'Method not allowed',
-                'response': 'Please use POST method'
-            }, status=405)
-        
-        # Parse request
-        try:
-            data = json.loads(request.body.decode('utf-8'))
-        except:
-            return JsonResponse({
-                'success': False,
-                'error': 'Invalid JSON',
-                'response': 'Please send valid JSON'
-            }, status=400)
-        
-        message = data.get('message', data.get('query', '')).strip()
-        if not message:
-            return JsonResponse({
-                'success': False,
-                'error': 'Empty message',
-                'response': 'Please provide a message'
-            }, status=400)
-        
-        # Simple AI logic that always works
-        msg_lower = message.lower()
-        
-        # Greetings
-        greetings = {
-            'hi': "Hello! 👋 I'm SokHub AI Assistant. How can I help you today?",
-            'hello': "Greetings! Welcome to SokHub Marketplace.",
-            'bonjour': "Bonjour! Je suis l'assistant AI de SokHub.",
-            'bjr': "Bonjour! Comment puis-je vous aider sur SokHub?",
-            'muraho': "Muraho! Ndi umuyobozi wa SokHub AI.",
-            'habari': "Habari! Mimi ni msaidizi wa SokHub.",
-            'hey': "Hey there! 🤖 Ready to explore SokHub?"
-        }
-        
-        # Check exact matches first
-        if msg_lower in greetings:
-            return JsonResponse({
-                'success': True,
-                'response': greetings[msg_lower],
-                'intent': 'greeting'
-            })
-        
-        # Check partial matches
-        for greet_key, greet_response in greetings.items():
-            if greet_key in msg_lower:
-                return JsonResponse({
-                    'success': True,
-                    'response': greet_response,
-                    'intent': 'greeting'
-                })
-        
-        # SokHub related
-        if 'sokhub' in msg_lower:
-            return JsonResponse({
-                'success': True,
-                'response': "🚀 **Welcome to SokHub!**\n\nSokHub is Rwanda's leading e-commerce marketplace where you can buy and sell products easily.\n\nI can help you with:\n• Finding products 🛍️\n• Selling items 🏪\n• Business analytics 📊\n• Order tracking 📦\n\nWhat would you like to do?",
-                'intent': 'platform_info'
-            })
-        
-        # Product search
-        product_words = ['product', 'buy', 'price', 'cost', 'shop', 'store', 'item', 'thing']
-        if any(word in msg_lower for word in product_words):
-            return JsonResponse({
-                'success': True,
-                'response': "🛍️ **Product Search**\n\nI can help you find products! Try asking:\n• 'Show me phones'\n• 'Laptops under 200,000'\n• 'Shoes for men'\n• 'Price of Samsung TV'\n\nWhat are you looking for?",
-                'intent': 'shopping'
-            })
-        
-        # Vendor queries
-        if any(word in msg_lower for word in ['vendor', 'sell', 'business', 'report', 'sales']):
-            return JsonResponse({
-                'success': True,
-                'response': "🏪 **Vendor Support**\n\nFor business owners, I can help with:\n• Sales reports 📊\n• Order management 📦\n• Stock tracking 📈\n• Business growth tips 💡\n\nAre you a vendor looking for assistance?",
-                'intent': 'vendor_support'
-            })
-        
-        # Default response
-        username = request.user.username if request.user.is_authenticated else "there"
-        return JsonResponse({
-            'success': True,
-            'response': f"🤖 **SokHub AI Assistant**\n\nHi {username}! I understand you mentioned: '{message}'.\n\nI'm here to help you with everything related to SokHub marketplace - shopping, selling, or business inquiries!\n\nTry asking me:\n• 'What is SokHub?'\n• 'Find me products'\n• 'Help with my business'\n• 'Contact a vendor'",
-            'intent': 'general'
-        })
-        
-    except Exception as e:
-        print(f"Error in ai_simple_chat: {str(e)}")
-        traceback.print_exc()
-        return JsonResponse({
-            'success': True,
-            'response': "Hello! I'm SokHub AI Assistant. I can help you buy or sell products on our marketplace. How can I assist you today?",
-            'intent': 'greeting'
-        })
+    """Simple chat endpoint that redirects to dynamic service"""
+    # This just wraps chat_send logic or calls service directly for consistency
+    return chat_send(request)
 
 @csrf_exempt
 def chat_start(request):
@@ -210,147 +114,6 @@ def chat_start(request):
             'success': False,
             'error': str(e),
             'response': 'Failed to start chat session'
-        }, status=500)
-
-@csrf_exempt
-def chat_send(request):
-    """Send a message in chat - FIXED VERSION"""
-    try:
-        if request.method != 'POST':
-            return JsonResponse({
-                'success': False,
-                'error': 'Method not allowed',
-                'response': 'Please use POST method'
-            }, status=405)
-        
-        # Parse request
-        try:
-            data = json.loads(request.body.decode('utf-8'))
-        except:
-            return JsonResponse({
-                'success': False,
-                'error': 'Invalid JSON',
-                'response': 'Please send valid JSON'
-            }, status=400)
-        
-        message = data.get('message', '').strip()
-        session_id = data.get('session_id', '')
-        
-        if not message:
-            return JsonResponse({
-                'success': False,
-                'error': 'Empty message',
-                'response': 'Please provide a message'
-            }, status=400)
-        
-        user = request.user if request.user.is_authenticated else None
-        
-        # SIMPLE RESPONSE LOGIC (Fallback if EnhancedAIService fails)
-        def get_simple_response(user_message):
-            msg_lower = user_message.lower()
-            
-            # Greetings
-            if any(word in msg_lower for word in ['hi', 'hello', 'hey', 'bonjour', 'muraho']):
-                username = user.username if user else "there"
-                return {
-                    'response': f"Hello {username}! 👋 I'm SokHub AI. How can I help you today?",
-                    'intent': 'greeting',
-                    'metadata': {'confidence': 1.0, 'language': 'en'}
-                }
-            
-            # SokHub
-            if 'sokhub' in msg_lower:
-                return {
-                    'response': "🚀 SokHub is Rwanda's e-commerce marketplace! Buy and sell products easily.",
-                    'intent': 'platform_info',
-                    'metadata': {'confidence': 1.0, 'language': 'en'}
-                }
-            
-            # Products
-            if any(word in msg_lower for word in ['product', 'buy', 'price', 'shop']):
-                return {
-                    'response': "🛍️ Looking for products? I can help! Try asking for specific items.",
-                    'intent': 'shopping',
-                    'metadata': {'confidence': 0.9, 'language': 'en'}
-                }
-            
-            # Default
-            return {
-                'response': f"I understand you're asking about '{user_message}'. I'm SokHub AI, here to help!",
-                'intent': 'general',
-                'metadata': {'confidence': 0.8, 'language': 'en'}
-            }
-        
-        # Try to use EnhancedAIService if available
-        ai_response = None
-        if HAS_ENHANCED_AI:
-            try:
-                # Prepare parameters for EnhancedAIService
-                session_context = {}
-                conversation_history = []
-                
-                # Try to get session if chat service is available
-                if HAS_CHAT_SERVICE and HAS_CHAT_MODELS and session_id:
-                    try:
-                        session = chat_service.chat_service.get_or_create_session(user, session_id)
-                        session_context = session.context
-                        conversation_history = chat_service.chat_service.get_conversation_history(session)
-                        
-                        # Add user message to session
-                        chat_service.chat_service.add_message(
-                            session=session,
-                            role='user',
-                            content=message,
-                            metadata={'timestamp': datetime.now().isoformat()}
-                        )
-                    except Exception as e:
-                        print(f"Chat session error: {e}")
-                        # Continue without session
-                        pass
-                
-                # Process with EnhancedAIService
-                ai_response = EnhancedAIService.process_chat_message(
-                    message=message,
-                    user=user,
-                    user_id=user.id if user else None,
-                    session_context=session_context,
-                    conversation_history=conversation_history
-                )
-                
-                # Add AI response to session if available
-                if HAS_CHAT_SERVICE and HAS_CHAT_MODELS and session_id and 'session' in locals():
-                    chat_service.chat_service.add_message(
-                        session=session,
-                        role='assistant',
-                        content=ai_response['response'],
-                        metadata=ai_response.get('metadata', {})
-                    )
-                    
-            except Exception as e:
-                print(f"EnhancedAIService error: {e}")
-                traceback.print_exc()
-                ai_response = get_simple_response(message)
-        else:
-            # Use simple response
-            ai_response = get_simple_response(message)
-        
-        # Return response
-        return JsonResponse({
-            'success': True,
-            'session_id': session_id,
-            'response': ai_response.get('response', ''),
-            'message_id': f"msg_{datetime.now().timestamp()}",
-            'context': {},
-            'intent': ai_response.get('intent', 'general')
-        })
-        
-    except Exception as e:
-        print(f"Error in chat_send: {str(e)}")
-        traceback.print_exc()
-        return JsonResponse({
-            'success': False,
-            'error': str(e),
-            'response': 'Sorry, I encountered an error processing your message.'
         }, status=500)
 
 @csrf_exempt
@@ -502,3 +265,133 @@ def health_check(request):
         'timestamp': datetime.now().isoformat(),
         'services': services
     })
+
+# Main Chat Endpoint using Enhanced AI Service
+@csrf_exempt
+def chat_send(request):
+    """Enhanced chat endpoint using database-aware AI service"""
+    try:
+        if request.method != 'POST':
+            return JsonResponse({
+                'success': False,
+                'error': 'Method not allowed'
+            }, status=405)
+
+        # Parse request
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON'
+            }, status=400)
+
+        message = data.get('message', '').strip()
+        session_id = data.get('session_id', '')
+        language = data.get('language', 'en')
+
+        if not message:
+            return JsonResponse({
+                'success': False,
+                'error': 'Empty message'
+            }, status=400)
+
+        user = request.user if request.user.is_authenticated else None
+        msg_lower = message.lower()
+        
+        # --- QUICK PRODUCT SEARCH (Inline handler) ---
+        # Check for product search intent
+        search_keywords = ['want', 'find', 'search', 'show', 'need', 'buy', 'get', 'looking for']
+        is_product_search = any(kw in msg_lower for kw in search_keywords)
+        
+        if is_product_search:
+            # Extract product name (remove common words)
+            clean_query = msg_lower
+            remove_words = ['i', 'want', 'find', 'search', 'show', 'me', 'need', 'buy', 'get', 'looking', 'for', 'to', 'the', 'a']
+            for word in remove_words:
+                clean_query = clean_query.replace(f' {word} ', ' ').replace(f'{word} ', ' ').replace(f' {word}', ' ').strip()
+            
+            if clean_query and len(clean_query) > 1:
+                # Search database
+                from product.models import Product
+                try:
+                    from django.db.models import Q
+                    products = Product.objects.filter(
+                        Q(name__icontains=clean_query) | 
+                        Q(description__icontains=clean_query) |
+                        Q(category__name__icontains=clean_query)
+                    )[:5]
+                    
+                    if products.exists():
+                        # Format results
+                        msg_lines = ["🔎 **Here is what I found:**"]
+                        for p in products:
+                            try:
+                                vendor_name = p.vendor.vendorprofile.business_name if p.vendor and hasattr(p.vendor, 'vendorprofile') else "Unknown Vendor"
+                            except:
+                                vendor_name = "Unknown Vendor"
+                            msg_lines.append(f"• **{p.name}** - RWF {p.price:,.0f} ({vendor_name})")
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'response': '\n'.join(msg_lines),
+                            'intent': 'product_search',
+                            'language': language,
+                            'session_id': session_id
+                        })
+                except Exception as e:
+                    print(f"Product search error: {e}")
+        
+        # --- Default: Use Enhanced AI Service ---
+        # Get user type
+        user_type = 'client'
+        if user and hasattr(user, 'user_type'):
+            user_type = user.user_type or 'client'
+
+        # Process with enhanced service
+        try:
+            result = enhanced_ai_service.process_message(
+                message=message,
+                user=user,
+                user_type=user_type,
+                language=language,
+                session_id=session_id 
+            )
+            
+            # Prefer the normalized 'response' key produced by the service,
+            # fall back to 'message' for older placeholders.
+            resp_text = ''
+            if isinstance(result, dict):
+                resp_text = result.get('response') or result.get('message') or ''
+            else:
+                resp_text = str(result)
+
+            response = {
+                'success': True,
+                'response': resp_text,
+                'intent': result.get('type', 'general') if isinstance(result, dict) else 'general',
+                'language': result.get('language', 'en') if isinstance(result, dict) else 'en',
+                'data': result.get('data', {}) if isinstance(result, dict) else {},
+                'session_id': session_id
+            }
+            
+            return JsonResponse(response)
+            
+        except Exception as e:
+            print(f"AI Service error: {e}")
+            traceback.print_exc()
+            # Fallback
+            return JsonResponse({
+                'success': True,
+                'response': f"Hello! I'm SokHub AI Assistant. I understand you said: '{message}'. How can I help you today?",
+                'intent': 'fallback',
+                'language': 'en'
+            })
+
+    except Exception as e:
+        print(f"Error in chat_send: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'response': 'Sorry, I encountered an error.'
+        }, status=500)

@@ -6,6 +6,7 @@ urlpatterns = [
     # Main AI endpoints
     path('api/ai/chat/', views.ai_simple_chat, name='ai_simple_chat'),  # USE THIS FIRST
     path('api/ai/assistant/', views.chat_send, name='ai_assistant'),
+    path('api/chat/send/', views.chat_send, name='chat_send'),  # Frontend uses this route
     
     # Chat session management
     path('api/ai/chat/start/', views.chat_start, name='chat_start'),
