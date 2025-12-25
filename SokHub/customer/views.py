@@ -523,10 +523,31 @@ def contact(request):
 def customer_dashboard(request):
     """Customer dashboard with black/magenta theme"""
     user = request.user
+    
+    # Fetch orders for this customer
+    customer_orders = Order.objects.filter(customer=user).order_by('-created_at')
+    
+    # Calculate stats
+    total_orders = customer_orders.count()
+    pending_orders = customer_orders.filter(status='pending').count()
+    completed_orders = customer_orders.filter(status__in=['completed', 'delivered']).count()
+    
+    # Calculate total spent safely
+    total_spent = customer_orders.filter(
+        status__in=['completed', 'delivered']
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    # Recent orders
+    recent_orders = customer_orders[:5]
+    
     context = {
         'user': user,
         'customer_profile': user.customerprofile,
-        # 'recent_orders': orders,
+        'recent_orders': recent_orders,
+        'total_orders': total_orders,
+        'pending_orders': pending_orders,
+        'completed_orders': completed_orders,
+        'total_spent': total_spent,
         'theme': {
             'primary': "#F5EDED",
             'accent': '#FF00FF',

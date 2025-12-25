@@ -422,9 +422,16 @@ def order_confirmation(request, order_number):
     """Order confirmation page"""
     order = get_object_or_404(Order, order_number=order_number, customer=request.user)
     
+    # Include status history and basic contact info for the template
+    status_history = order.status_history.all()[:10]
+    order_items = order.items.select_related('product')
+    customer_email = order.customer.email if hasattr(order.customer, 'email') else None
+
     context = {
         'order': order,
-        'order_items': order.items.all(),
+        'order_items': order_items,
+        'status_history': status_history,
+        'customer_email': customer_email,
     }
     
     return render(request, 'orders/order_confirmation.html', context)

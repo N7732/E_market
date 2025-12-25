@@ -157,6 +157,37 @@ class ProductDetailView(DetailView):
         if self.request.user.is_authenticated:
             user_has_review = product.reviews.filter(customer=self.request.user).exists()
         
+        # Calculate Vendor Stats
+        vendor_products = Product.objects.filter(vendor=product.vendor, status='active')
+        vendor_product_count = vendor_products.count()
+        vendor_rating = vendor_products.aggregate(Avg('average_rating'))['average_rating__avg'] or 0
+        # Total approved reviews across vendor products
+        try:
+            vendor_review_count = ProductReview.objects.filter(product__vendor=product.vendor, is_approved=True).count()
+        except Exception:
+            vendor_review_count = 0
+        
+        # Calculate time on platform (e.g. "1 week, 6 days")
+        now = timezone.now()
+        joined_date = product.vendor.date_joined
+        diff = now - joined_date
+        
+        if diff.days > 365:
+            years = diff.days // 365
+            time_on_platform = f"{years} year{'s' if years > 1 else ''}"
+        elif diff.days > 30:
+            months = diff.days // 30
+            time_on_platform = f"{months} month{'s' if months > 1 else ''}"
+        elif diff.days > 0:
+            time_on_platform = f"{diff.days} day{'s' if diff.days > 1 else ''}"
+        else:
+            time_on_platform = "New Vendor"
+        # Compute positive rating percent (assuming rating out of 5)
+        try:
+            positive_rating_percent = int(round((vendor_rating / 5.0) * 100)) if vendor_rating else 0
+        except Exception:
+            positive_rating_percent = 0
+
         context.update({
             'related_products': related_products,
             'reviews': reviews,
@@ -168,6 +199,16 @@ class ProductDetailView(DetailView):
             'prev_product': prev_product,
             'next_product': next_product,
             'review_form': review_form,
+            
+            # Vendor Stats
+            'vendor_stats': {
+                'product_count': vendor_product_count,
+                'rating': round(vendor_rating, 1),
+                'positive_rating_percent': positive_rating_percent,
+                'review_count': vendor_review_count,
+                'joined': joined_date,
+                'time_on_platform': time_on_platform
+            }
         })
         return context
 
