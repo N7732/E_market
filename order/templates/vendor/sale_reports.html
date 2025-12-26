@@ -1,0 +1,887 @@
+<!-- templates/vendor/sales_report.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sales Report - SokHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --report-primary: #28a745;
+        --report-secondary: #17a2b8;
+        --report-warning: #ffc107;
+        --report-danger: #dc3545;
+        --report-purple: #6f42c1;
+        --report-dark: #343a40;
+        --report-light: #f8f9fa;
+        --report-success-light: #d4edda;
+        --report-info-light: #d1ecf1;
+        --report-warning-light: #fff3cd;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    
+    .report-header {
+        background: linear-gradient(90deg, var(--report-dark) 0%, #006400 100%);
+        color: white;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        padding: 30px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .filter-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .summary-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .summary-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+    }
+    
+    .summary-total::after { background: linear-gradient(90deg, var(--report-primary), #20c997); }
+    .summary-avg::after { background: linear-gradient(90deg, var(--report-secondary), #0dcaf0); }
+    .summary-count::after { background: linear-gradient(90deg, var(--report-purple), #9d6fdc); }
+    
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .sales-table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 0;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    
+    .sales-table {
+        margin-bottom: 0;
+    }
+    
+    .sales-table thead {
+        background: linear-gradient(90deg, var(--report-dark), #006400);
+        color: white;
+    }
+    
+    .sales-table thead th {
+        border: none;
+        padding: 12px 15px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .sales-table tbody tr {
+        transition: all 0.2s;
+    }
+    
+    .sales-table tbody tr:hover {
+        background-color: rgba(40, 167, 69, 0.05);
+    }
+    
+    .sales-table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-color: #eee;
+        font-size: 0.9rem;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-left: 10px;
+    }
+    
+    .trend-up {
+        background-color: var(--report-success-light);
+        color: var(--report-primary);
+    }
+    
+    .trend-down {
+        background-color: #f8d7da;
+        color: var(--report-danger);
+    }
+    
+    .animated-number {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+        background: linear-gradient(90deg, var(--report-dark), #495057);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .revenue-bar {
+        height: 6px;
+        border-radius: 3px;
+        background-color: #e9ecef;
+        overflow: hidden;
+        margin-top: 6px;
+    }
+    
+    .revenue-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--report-primary), #20c997);
+        border-radius: 3px;
+        transition: width 1s ease-out;
+    }
+    
+    .no-data-message {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6c757d;
+    }
+    
+    .no-data-message i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        opacity: 0.3;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        z-index: 10;
+    }
+    
+    .loading-spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--report-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .compact-chart {
+        height: 180px !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="report-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="fas fa-chart-line me-3"></i>Sales Performance Report
+                </h1>
+                <p class="lead mb-0 opacity-75">
+                    {% if date_range == '30d' %}
+                    Last 30 Days Sales Report
+                    {% elif date_range == '90d' %}
+                    Last 90 Days Sales Report
+                    {% elif date_range == '1y' %}
+                    Last Year Sales Report
+                    {% else %}
+                    All Time Sales Report
+                    {% endif %}
+                </p>
+                <small class="text-white-50">
+                    <i class="far fa-calendar-alt me-1"></i>
+                    {% if start_date %}
+                    {{ start_date|date:"M d, Y" }} - {{ end_date|date:"M d, Y" }}
+                    {% else %}
+                    All Time
+                    {% endif %}
+                </small>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="export-buttons">
+                    <button class="btn btn-outline-light btn-sm" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6">
+            <div class="summary-card summary-total">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-1">TOTAL REVENUE</h6>
+                        <h2 class="animated-number">
+                            RWF {{ total_revenue|default:0|floatformat:0 }}
+                        </h2>
+                        {% if sales_data %}
+                        <span class="trend-indicator {% if total_revenue > 0 %}trend-up{% else %}trend-down{% endif %}">
+                            <i class="fas fa-arrow-{% if total_revenue > 0 %}up{% else %}down{% endif %} me-1"></i>
+                            {% if date_range == '30d' %}Last 30 Days{% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <i class="fas fa-money-bill-wave fa-2x text-success opacity-25"></i>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Revenue from all delivered orders</p>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="summary-card summary-avg">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-1">AVG. REVENUE PER PRODUCT</h6>
+                        <h2 class="animated-number">
+                            RWF {{ avg_revenue_per_product|default:0|floatformat:0 }}
+                        </h2>
+                        {% if sales_data %}
+                        <span class="trend-indicator {% if avg_revenue_per_product > 0 %}trend-up{% else %}trend-down{% endif %}">
+                            <i class="fas fa-arrow-{% if avg_revenue_per_product > 0 %}up{% else %}down{% endif %} me-1"></i>
+                            {{ total_products }} Products
+                        </span>
+                        {% endif %}
+                    </div>
+                    <i class="fas fa-chart-bar fa-2x text-info opacity-25"></i>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Average revenue across all products</p>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="summary-card summary-count">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-1">PRODUCTS SOLD</h6>
+                        <h2 class="animated-number">{{ total_products }}</h2>
+                        <span class="trend-indicator trend-up">
+                            <i class="fas fa-box me-1"></i>
+                            {{ total_quantity|default:0 }} Units
+                        </span>
+                    </div>
+                    <i class="fas fa-box fa-2x text-purple opacity-25"></i>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Total products with sales</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Section -->
+    <div class="filter-card">
+        <form method="GET" id="filterForm">
+            <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Report Filters</h5>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Date Range</label>
+                    <select class="form-select" name="date_range" id="dateRange">
+                        <option value="30d" {% if date_range == '30d' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90d" {% if date_range == '90d' %}selected{% endif %}>Last 90 Days</option>
+                        <option value="1y" {% if date_range == '1y' %}selected{% endif %}>Last Year</option>
+                        <option value="all" {% if date_range == 'all' %}selected{% endif %}>All Time</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Sort By</label>
+                    <select class="form-select" name="sort_by" id="sortBy">
+                        <option value="revenue" selected>Highest Revenue</option>
+                        <option value="quantity">Highest Quantity</option>
+                        <option value="name">Product Name</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Product Category</label>
+                    <select class="form-select" name="category" id="productCategory">
+                        <option value="all" selected>All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-sync-alt me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <div class="row">
+        <!-- Left Column: Charts -->
+        <div class="col-lg-7">
+            <!-- Revenue Distribution Chart -->
+            <div class="chart-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0 text-muted">
+                        <i class="fas fa-chart-pie me-2 text-success"></i> Revenue Distribution
+                    </h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary btn-sm active" data-chart-type="pie">
+                            <i class="fas fa-chart-pie"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" data-chart-type="bar">
+                            <i class="fas fa-chart-bar"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" data-chart-type="doughnut">
+                            <i class="fas fa-chart-pie"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="position-relative" style="height: 200px;">
+                    <canvas id="revenueChart"></canvas>
+                    {% if not top_products_labels %}
+                    <div class="loading-overlay">
+                        <div class="text-center">
+                            <i class="fas fa-chart-pie fa-2x text-muted mb-3"></i>
+                            <p class="text-muted small">No sales data for chart</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Sales Trend Chart - COMPACT VERSION -->
+            <div class="chart-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0 text-muted">
+                        <i class="fas fa-chart-line me-2 text-info"></i> Sales Trend (Last 6 Months)
+                    </h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary btn-sm active" data-trend-type="revenue">
+                            <i class="fas fa-money-bill"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" data-trend-type="quantity">
+                            <i class="fas fa-box"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Compact chart container -->
+                <div class="compact-chart">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                
+                <!-- Simplified legend -->
+                <div class="mt-2 text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-circle text-success me-1"></i> Monthly Revenue
+                    </small>
+                </div>
+                
+                {% if not trend_labels %}
+                <div class="text-center py-3">
+                    <i class="fas fa-chart-line fa-2x text-muted mb-2"></i>
+                    <p class="text-muted small mb-0">No trend data available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Right Column: Data Table -->
+        <div class="col-lg-5">
+            <div class="sales-table-container">
+                <div class="p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-muted">
+                            <i class="fas fa-table me-2"></i> Sales Breakdown
+                        </h6>
+                        <span class="badge bg-success rounded-pill">
+                            {{ sales_data|length }} Products
+                        </span>
+                    </div>
+                </div>
+                
+                {% if sales_data %}
+                <div class="table-responsive">
+                    <table class="table sales-table">
+                        <thead>
+                            <tr>
+                                <th width="40%">Product</th>
+                                <th width="20%" class="text-center">Qty</th>
+                                <th width="40%" class="text-end">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in sales_data %}
+                            <tr>
+                                <td>
+                                    <div class="fw-medium">{{ item.product__name|default:"Unknown"|truncatechars:20 }}</div>
+                                    {% if item.total_revenue and total_revenue > 0 %}
+                                    <div class="revenue-bar">
+                                        <div class="revenue-fill" 
+                                             style="--target-width: {{ item.percentage|default:'0' }}%; 
+                                                    width: {{ item.percentage|default:'0' }}%;"
+                                             data-width="{{ item.percentage|default:'0' }}">
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center fw-bold">
+                                    {{ item.total_quantity|default:0 }}
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold text-success">
+                                        RWF {{ item.total_revenue|default:0|floatformat:0 }}
+                                    </span>
+                                    {% if item.percentage %}
+                                    <br>
+                                    <small class="text-muted">{{ item.percentage|floatformat:1 }}%</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if sales_data %}
+                        <tfoot class="table-light">
+                            <tr>
+                                <td class="fw-bold">TOTAL</td>
+                                <td class="text-center fw-bold">{{ total_quantity|default:0 }}</td>
+                                <td class="text-end fw-bold text-success">
+                                    RWF {{ total_revenue|default:0|floatformat:0 }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+                {% else %}
+                <div class="no-data-message">
+                    <i class="fas fa-chart-bar fa-2x"></i>
+                    <h6 class="text-muted mb-2">No Sales Data Available</h6>
+                    <p class="text-muted small mb-0">
+                        {% if start_date %}
+                        No sales from {{ start_date|date:"M d, Y" }}
+                        {% else %}
+                        No sales recorded yet
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'vendor_add_product' %}" class="btn btn-success btn-sm mt-2">
+                        <i class="fas fa-plus-circle me-1"></i>Add Products
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Summary Stats -->
+            <div class="chart-container">
+                <h6 class="mb-3 text-muted">
+                    <i class="fas fa-chart-bar me-2 text-warning"></i> Performance Summary
+                </h6>
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-2 bg-light rounded">
+                            <h5 class="text-success mb-1">
+                                RWF {{ top_product_revenue|default:0|floatformat:0 }}
+                            </h5>
+                            <small class="text-muted">Top Product</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-2 bg-light rounded">
+                            <h5 class="text-info mb-1">
+                                RWF {{ avg_revenue_per_product|default:0|floatformat:0 }}
+                            </h5>
+                            <small class="text-muted">Avg. Product</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-2 bg-light rounded">
+                            <h5 class="text-purple mb-1">{{ total_quantity|default:0 }}</h5>
+                            <small class="text-muted">Total Units</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    animateProgressBars();
+    setupEventListeners();
+});
+
+// Initialize charts with real data from Django
+function initializeCharts() {
+    // Revenue Distribution Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+        const revenueChart = new Chart(revenueCtx, {
+            type: 'pie',
+            data: {
+                labels: {{ top_products_labels|safe|default:'[]' }},
+                datasets: [{
+                    data: {{ top_products_revenue|safe|default:'[]' }},
+                    backgroundColor: [
+                        '#28a745', '#17a2b8', '#ffc107', '#6f42c1', '#dc3545'
+                    ],
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 10,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value.toLocaleString()} RWF (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Chart type switcher
+        document.querySelectorAll('[data-chart-type]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-chart-type]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                revenueChart.config.type = this.dataset.chartType;
+                revenueChart.update();
+            });
+        });
+    }
+    
+    // Sales Trend Chart - COMPACT VERSION
+    const trendCtx = document.getElementById('trendChart');
+    if (trendCtx && {{ trend_labels|length|default:0 }} > 0) {
+        const trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: {{ trend_labels|safe|default:'[]' }},
+                datasets: [{
+                    label: 'Revenue (RWF)',
+                    data: {{ trend_revenue|safe|default:'[]' }},
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        titleFont: { size: 12 },
+                        bodyFont: { size: 12 },
+                        padding: 8
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            callback: function(value) {
+                                if (value >= 1000000) return (value/1000000).toFixed(0) + 'M';
+                                if (value >= 1000) return (value/1000).toFixed(0) + 'K';
+                                return value;
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'nearest'
+                }
+            }
+        });
+        
+        // Compact trend type switcher
+        document.querySelectorAll('[data-trend-type]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-trend-type]').forEach(b => {
+                    b.classList.remove('active');
+                    b.classList.remove('btn-success');
+                    b.classList.add('btn-outline-secondary');
+                });
+                
+                this.classList.add('active');
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                
+                const type = this.dataset.trendType;
+                if (type === 'quantity') {
+                    trendChart.data.datasets[0].data = {{ trend_quantity|safe|default:'[]' }};
+                    trendChart.data.datasets[0].label = 'Quantity';
+                    trendChart.data.datasets[0].borderColor = '#17a2b8';
+                    trendChart.data.datasets[0].backgroundColor = 'rgba(23, 162, 184, 0.05)';
+                } else {
+                    trendChart.data.datasets[0].data = {{ trend_revenue|safe|default:'[]' }};
+                    trendChart.data.datasets[0].label = 'Revenue (RWF)';
+                    trendChart.data.datasets[0].borderColor = '#28a745';
+                    trendChart.data.datasets[0].backgroundColor = 'rgba(40, 167, 69, 0.05)';
+                }
+                trendChart.update();
+            });
+        });
+    }
+}
+
+// Animate progress bars
+function animateProgressBars() {
+    document.querySelectorAll('.revenue-fill').forEach(bar => {
+        const width = bar.dataset.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.width = width + '%';
+        }, 500);
+    });
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    // Auto-submit form on filter change
+    document.getElementById('dateRange').addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+    
+    // Export functions
+    window.exportToPDF = exportToPDF;
+    window.exportToExcel = exportToExcel;
+}
+
+// Export to PDF function
+function exportToPDF() {
+    try {
+        // Simple PDF generation without autoTable
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Title
+        doc.setFontSize(16);
+        doc.setTextColor(40, 167, 69);
+        doc.text('SALES REPORT', 105, 15, { align: 'center' });
+        
+        // Report info
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Vendor: {{ vendor.business_name }}`, 20, 25);
+        doc.text(`Period: {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}`, 20, 32);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 39);
+        
+        // Summary
+        doc.setFontSize(12);
+        doc.setTextColor(40, 167, 69);
+        doc.text('Summary', 20, 50);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        let y = 60;
+        doc.text(`Total Revenue: RWF {{ total_revenue|default:0|floatformat:0 }}`, 25, y);
+        y += 8;
+        doc.text(`Total Products: {{ total_products }}`, 25, y);
+        y += 8;
+        doc.text(`Total Units Sold: {{ total_quantity|default:0 }}`, 25, y);
+        y += 15;
+        
+        // Table header
+        doc.setFontSize(12);
+        doc.setTextColor(40, 167, 69);
+        doc.text('Sales Breakdown', 20, y);
+        y += 10;
+        
+        // Simple table
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        
+        // Table headers
+        doc.text('Product', 20, y);
+        doc.text('Qty', 120, y);
+        doc.text('Revenue', 160, y, { align: 'right' });
+        y += 5;
+        doc.line(20, y, 190, y);
+        y += 8;
+        
+        // Table rows
+        {% for item in sales_data|slice:":15" %}
+        doc.text('{{ item.product__name|default:"Unknown"|truncatechars:40 }}', 20, y);
+        doc.text('{{ item.total_quantity|default:0 }}', 120, y);
+        doc.text('RWF {{ item.total_revenue|default:0|floatformat:0 }}', 190, y, { align: 'right' });
+        y += 7;
+        {% endfor %}
+        
+        // Total row
+        y += 5;
+        doc.line(20, y, 190, y);
+        y += 8;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('TOTAL', 20, y);
+        doc.text('{{ total_quantity|default:0 }}', 120, y);
+        doc.text('RWF {{ total_revenue|default:0|floatformat:0 }}', 190, y, { align: 'right' });
+        
+        // Save
+        doc.save('sales-report.pdf');
+        showToast('PDF downloaded successfully!', 'success');
+        
+    } catch (error) {
+        console.error('PDF Error:', error);
+        showToast('Error: Could not generate PDF', 'danger');
+    }
+}
+
+// Export to Excel function
+function exportToExcel() {
+    // Create CSV content
+    let csv = 'Product,Quantity,Revenue (RWF),Percentage\n';
+    
+    {% for item in sales_data %}
+    csv += '"{{ item.product__name|default:"Unknown" }}",{{ item.total_quantity|default:0 }},{{ item.total_revenue|default:0 }},{{ item.percentage|default:0|floatformat:1 }}\n';
+    {% endfor %}
+    
+    // Add summary
+    csv += '\n\nSUMMARY\n';
+    csv += `Total Revenue,RWF {{ total_revenue|default:0|floatformat:0 }}\n`;
+    csv += `Total Products,{{ sales_data|length }}\n`;
+    csv += `Total Units,{{ total_quantity|default:0 }}\n`;
+    csv += `Date Range,{{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}\n`;
+    
+    // Create download link
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `sales-report-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message
+    showToast('Excel file downloaded successfully!', 'success');
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 m-3';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-${type} text-white">
+                <strong class="me-auto"><i class="fas fa-check-circle me-2"></i>Success</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

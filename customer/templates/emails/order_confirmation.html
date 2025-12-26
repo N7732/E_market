@@ -1,0 +1,140 @@
+<!-- templates/emails/order_confirmation.html -->
+{% extends "emails/base_email.html" %}
+
+{% block title %}Order Confirmation #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 30px;">
+    <div style="background: linear-gradient(135deg, #FF00FF 0%, #cc00cc 100%); color: white; width: 80px; height: 80px; line-height: 80px; border-radius: 50%; margin: 0 auto 20px; font-size: 40px;">
+        ✓
+    </div>
+    <h2 style="color: #000000; margin-bottom: 10px;">Order Confirmed! 🎉</h2>
+    <p style="font-size: 18px; color: #666;">Thank you for your purchase</p>
+</div>
+
+<div style="background-color: #000000; color: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <p style="margin: 0; font-size: 14px; color: #cccccc;">ORDER NUMBER</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">#{{ order.order_number }}</p>
+        </div>
+        <div>
+            <p style="margin: 0; font-size: 14px; color: #cccccc;">ORDER DATE</p>
+            <p style="margin: 5px 0 0 0; font-size: 18px;">{{ order.created_at|date:"F d, Y" }}</p>
+        </div>
+        <div>
+            <p style="margin: 0; font-size: 14px; color: #cccccc;">TOTAL AMOUNT</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #FF00FF;">{{ order.total_amount }} RWF</p>
+        </div>
+    </div>
+</div>
+
+<h3 style="color: #000000; margin: 30px 0 15px 0;">Order Details:</h3>
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+    <thead>
+        <tr style="background-color: #f8f9fa;">
+            <th style="text-align: left; padding: 15px; border-bottom: 2px solid #eaeaea;">Product</th>
+            <th style="text-align: center; padding: 15px; border-bottom: 2px solid #eaeaea;">Quantity</th>
+            <th style="text-align: right; padding: 15px; border-bottom: 2px solid #eaeaea;">Price</th>
+            <th style="text-align: right; padding: 15px; border-bottom: 2px solid #eaeaea;">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in order_items %}
+        <tr>
+            <td style="padding: 15px; border-bottom: 1px solid #eaeaea;">
+                <strong>{{ item.product.name }}</strong><br>
+                <span style="color: #666; font-size: 14px;">{{ item.product.vendor.business_name }}</span>
+            </td>
+            <td style="text-align: center; padding: 15px; border-bottom: 1px solid #eaeaea;">{{ item.quantity }}</td>
+            <td style="text-align: right; padding: 15px; border-bottom: 1px solid #eaeaea;">{{ item.price }} RWF</td>
+            <td style="text-align: right; padding: 15px; border-bottom: 1px solid #eaeaea;">{{ item.total_price }} RWF</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="text-align: right; padding: 15px; font-weight: bold;">Subtotal:</td>
+            <td style="text-align: right; padding: 15px; font-weight: bold;">{{ order.subtotal }} RWF</td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align: right; padding: 15px; font-weight: bold;">Shipping:</td>
+            <td style="text-align: right; padding: 15px; font-weight: bold;">{{ order.shipping_cost }} RWF</td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align: right; padding: 15px; font-size: 18px; font-weight: bold; color: #000000;">Total:</td>
+            <td style="text-align: right; padding: 15px; font-size: 18px; font-weight: bold; color: #FF00FF;">{{ order.total_amount }} RWF</td>
+        </tr>
+    </tfoot>
+</table>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 40px 0;">
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+        <h4 style="color: #000000; margin-top: 0; margin-bottom: 15px;">📦 Shipping Information</h4>
+        <p style="margin: 5px 0;"><strong>Name:</strong> {{ user.get_full_name|default:user.username }}</p>
+        <p style="margin: 5px 0;"><strong>Address:</strong> {{ order.shipping_address }}</p>
+        <p style="margin: 5px 0;"><strong>Phone:</strong> {{ user.phone }}</p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> {{ user.email }}</p>
+    </div>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+        <h4 style="color: #000000; margin-top: 0; margin-bottom: 15px;">💳 Payment Information</h4>
+        <p style="margin: 5px 0;"><strong>Method:</strong> MTN Momo</p>
+        <p style="margin: 5px 0;"><strong>Status:</strong> 
+            <span style="color: {% if order.payment_status == 'paid' %}#4caf50{% else %}#ff9800{% endif %}; font-weight: bold;">
+                {{ order.payment_status|title }}
+            </span>
+        </p>
+        <p style="margin: 5px 0;"><strong>Momo Number:</strong> {{ order.momo_number }}</p>
+        <p style="margin: 5px 0;"><strong>Transaction ID:</strong> {{ order.transaction_id|default:"Pending" }}</p>
+    </div>
+</div>
+
+<div class="success-box">
+    <h4 style="color: #000000; margin-top: 0;">📥 Download Invoice</h4>
+    <p style="margin-bottom: 15px;">
+        You can download a PDF invoice for your records by clicking the button below:
+    </p>
+    <div style="text-align: center;">
+        <a href="{{ order.get_pdf_url }}" class="button button-secondary">Download PDF Invoice</a>
+    </div>
+</div>
+
+<div style="text-align: center; margin: 40px 0;">
+    <a href="{{ settings.SITE_URL }}/orders/{{ order.id }}" class="button">View Order Details</a>
+    <p style="margin-top: 15px;">
+        <a href="{{ settings.SITE_URL }}/orders" style="color: #FF00FF; text-decoration: none;">View All Orders →</a>
+    </p>
+</div>
+
+<div style="border-top: 1px solid #eaeaea; padding-top: 30px; margin-top: 30px;">
+    <h4 style="color: #000000; margin-bottom: 15px;">What's Next?</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+        <div style="text-align: center; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">1</div>
+            <strong>Order Processing</strong>
+            <p style="font-size: 14px; margin-top: 5px; color: #666;">Vendor prepares your items</p>
+        </div>
+        <div style="text-align: center; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">2</div>
+            <strong>Shipping</strong>
+            <p style="font-size: 14px; margin-top: 5px; color: #666;">Items dispatched to you</p>
+        </div>
+        <div style="text-align: center; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">3</div>
+            <strong>Delivery</strong>
+            <p style="font-size: 14px; margin-top: 5px; color: #666;">Receive your package</p>
+        </div>
+        <div style="text-align: center; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">4</div>
+            <strong>Feedback</strong>
+            <p style="font-size: 14px; margin-top: 5px; color: #666;">Rate your experience</p>
+        </div>
+    </div>
+</div>
+
+<p style="text-align: center; margin-top: 40px; color: #666;">
+    Need help with your order? Contact our support team at 
+    <a href="mailto:support@yourdomain.com" style="color: #FF00FF; text-decoration: none;">support@yourdomain.com</a>
+</p>
+{% endblock %}

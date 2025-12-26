@@ -1,0 +1,396 @@
+<!-- customer/order_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Orders | SokHub{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'customer_order_list' %}">My Orders</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Order History</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-bag-check me-2"></i>My Orders
+            </h1>
+            <p class="text-muted mb-0">View and track all your orders</p>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="d-flex gap-2">
+            <a href="{% url 'product_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-shop me-1"></i>Continue Shopping
+            </a>
+            <a href="{% url 'cart' %}" class="btn btn-primary">
+                <i class="bi bi-cart me-1"></i>View Cart
+            </a>
+        </div>
+    </div>
+
+    <!-- Order Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Total Orders</h6>
+                    <h3 class="text-primary">{{ total_orders }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Pending</h6>
+                    <h3 class="text-warning">{{ pending_orders }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Delivered</h6>
+                    <h3 class="text-success">{{ delivered_orders }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Total Spent</h6>
+                    <h3 class="text-info">RWF {{ total_spent|floatformat:0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3"><i class="bi bi-filter me-2"></i>Filter Orders</h5>
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                        <option value="processing" {% if request.GET.status == 'processing' %}selected{% endif %}>Processing</option>
+                        <option value="shipped" {% if request.GET.status == 'shipped' %}selected{% endif %}>Shipped</option>
+                        <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                        <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Payment Status</label>
+                    <select name="payment_status" class="form-select">
+                        <option value="">All Payment</option>
+                        <option value="pending" {% if request.GET.payment_status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="completed" {% if request.GET.payment_status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="failed" {% if request.GET.payment_status == 'failed' %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Order number or vendor..." 
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-filter"></i> Apply Filter
+                    </button>
+                    <a href="{% url 'customer_order_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in page_obj %}
+                            <tr>
+                                <td>
+                                    <strong>{{ order.order_number }}</strong>
+                                    {% if order.delete_requested %}
+                                        <span class="badge bg-warning ms-1" title="Deletion Requested">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        {{ order.items.count }} item{{ order.items.count|pluralize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-primary">RWF {{ order.total_amount|floatformat:0 }}</strong>
+                                </td>
+                                <td>
+                                    {% if order.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif order.status == 'confirmed' %}
+                                        <span class="badge bg-info">Confirmed</span>
+                                    {% elif order.status == 'processing' %}
+                                        <span class="badge bg-primary">Processing</span>
+                                    {% elif order.status == 'shipped' %}
+                                        <span class="badge bg-info">Shipped</span>
+                                    {% elif order.status == 'delivered' %}
+                                        <span class="badge bg-success">Delivered</span>
+                                    {% elif order.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Cancelled</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ order.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if order.payment_status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif order.payment_status == 'completed' %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% elif order.payment_status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ order.payment_status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{% url 'customer_order_detail' order_number=order.order_number %}" 
+                                           class="btn btn-outline-primary" 
+                                           title="View Details">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                        {% if order.can_be_cancelled and order.status != 'cancelled' %}
+                                        <button type="button" 
+                                                class="btn btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#cancelModal{{ order.id }}"
+                                                title="Cancel Order">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if order.invoice_pdf %}
+                                        <a href="{% url 'download_invoice' order_number=order.order_number %}" 
+                                           class="btn btn-outline-success"
+                                           title="Download Invoice">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Cancel Order Modal -->
+                                    <div class="modal fade" id="cancelModal{{ order.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Cancel Order</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <form method="POST" action="{% url 'request_order_deletion' order_number=order.order_number %}">
+                                                    {% csrf_token %}
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to cancel order <strong>{{ order.order_number }}</strong>?</p>
+                                                        <div class="mb-3">
+                                                            <label for="reason{{ order.id }}" class="form-label">Reason for cancellation:</label>
+                                                            <textarea class="form-control" id="reason{{ order.id }}" 
+                                                                      name="reason" rows="3" required 
+                                                                      placeholder="Please provide a reason for cancellation"></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        <button type="submit" class="btn btn-danger">Submit Cancellation Request</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+                        </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                
+            {% else %}
+                <!-- No Orders Message -->
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-bag-x display-1 text-muted"></i>
+                    </div>
+                    <h4 class="mb-3">No Orders Yet</h4>
+                    <p class="text-muted mb-4">You haven't placed any orders yet. Start shopping now!</p>
+                    <a href="{% url 'product_list' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-shop me-2"></i>Start Shopping
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-4">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-headset display-4 text-primary"></i>
+                    </div>
+                    <h5>Need Help?</h5>
+                    <p class="text-muted small">Have questions about your order? Contact our support team.</p>
+                    <a href="mailto:support@example.com" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-envelope me-1"></i>Email Support
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-arrow-counterclockwise display-4 text-success"></i>
+                    </div>
+                    <h5>Return Policy</h5>
+                    <p class="text-muted small">30-day return policy on most items. Easy returns and refunds.</p>
+                    <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">
+                        <i class="bi bi-info-circle me-1"></i>View Policy
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-truck display-4 text-info"></i>
+                    </div>
+                    <h5>Track Your Order</h5>
+                    <p class="text-muted small">Contact vendor directly for tracking information on shipped orders.</p>
+                    <a href="#trackingInfo" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-truck me-1"></i>Get Info
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Return Policy Modal -->
+<div class="modal fade" id="returnPolicyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Return Policy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Our Return Policy:</h6>
+                <ul>
+                    <li>30-day return period from delivery date</li>
+                    <li>Items must be unused and in original packaging</li>
+                    <li>Refunds processed within 7-10 business days</li>
+                    <li>Contact vendor directly for return authorization</li>
+                    <li>Shipping costs for returns may apply</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update cart count dynamically
+function updateCartCount() {
+    fetch('{% url "get_cart_count" %}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('cart-count').textContent = data.count;
+        });
+}
+
+// Update cart count on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateCartCount();
+    
+    // Auto-submit filter form on select change
+    document.querySelectorAll('select[name="status"], select[name="payment_status"]').forEach(select => {
+        select.addEventListener('change', function() {
+            this.closest('form').submit();
+        });
+    });
+});
+</script>
+{% endblock %}

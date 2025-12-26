@@ -1,0 +1,288 @@
+<!-- AI Assistant Widget -->
+<style>
+    #ai-assistant-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 10000;
+        font-family: 'Inter', sans-serif;
+    }
+
+    #ai-star-btn {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        outline: none;
+    }
+
+    #ai-star-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #ai-star-icon {
+        color: white;
+        font-size: 30px;
+    }
+
+    #ai-chat-window {
+        position: fixed;
+        bottom: 90px;
+        right: 20px;
+        width: 350px;
+        height: 500px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .ai-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ai-header h3 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .ai-close {
+        cursor: pointer;
+        font-size: 20px;
+    }
+
+    .ai-messages {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background: #f8f9fa;
+    }
+
+    .ai-message {
+        margin-bottom: 10px;
+        max-width: 80%;
+        padding: 10px 15px;
+        border-radius: 15px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .ai-user-message {
+        background: #667eea;
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 5px;
+    }
+
+    .ai-bot-message {
+        background: white;
+        color: #333;
+        border: 1px solid #e0e0e0;
+        margin-right: auto;
+        border-bottom-left-radius: 5px;
+    }
+
+    .ai-input-area {
+        padding: 15px;
+        background: white;
+        border-top: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #ai-input {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 10px 15px;
+        outline: none;
+        font-size: 14px;
+    }
+
+    #ai-input:focus {
+        border-color: #667eea;
+    }
+
+    .ai-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #667eea;
+        font-size: 20px;
+        transition: transform 0.2s;
+    }
+
+    .ai-btn:hover {
+        transform: scale(1.1);
+    }
+</style>
+
+<div id="ai-assistant-widget">
+    <button id="ai-star-btn" onclick="toggleAIChat()">
+        <span id="ai-star-icon">✨</span>
+    </button>
+
+    <div id="ai-chat-window">
+        <div class="ai-header">
+            <h3>AI Assistant</h3>
+            <span class="ai-close" onclick="toggleAIChat()">✨</span>
+        </div>
+        <div class="ai-messages" id="ai-messages">
+            <!-- Messages will be added here -->
+            <div class="ai-message ai-bot-message">
+                Hello! I'm your AI assistant. How can I help you today?
+            </div>
+        </div>
+        <div class="ai-input-area">
+            <button class="ai-btn" onclick="startVoiceInput()" title="Voice Input">🎤</button>
+            <input type="text" id="ai-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+            <button class="ai-btn" onclick="sendMessage()" title="Send">➤</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let sessionId = localStorage.getItem('ai_session_id');
+    let isRecording = false;
+
+    function toggleAIChat() {
+        const chatWindow = document.getElementById('ai-chat-window');
+        if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
+            chatWindow.style.display = 'flex';
+            if (!sessionId) {
+                startNewSession();
+            }
+        } else {
+            chatWindow.style.display = 'none';
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    async function startNewSession() {
+        try {
+            // NOTE: Adjust the path prefix if your app is not mounted at root
+            const response = await fetch('/ai/api/chat/start/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add CSRF token if needed
+                },
+                body: JSON.stringify({ context: { user_agent: navigator.userAgent } })
+            });
+            const data = await response.json();
+            sessionId = data.session_id;
+            localStorage.setItem('ai_session_id', sessionId);
+        } catch (error) {
+            console.error('Error starting session:', error);
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('ai-input');
+        const message = input.value.trim();
+        if (!message) return;
+
+        // Add user message to UI
+        addMessage(message, 'user');
+        input.value = '';
+
+        try {
+            // add cache-busting query param to avoid stale cached responses
+            const response = await fetch('/ai/api/chat/send/?_=' + Date.now(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    message: message
+                })
+            });
+            const data = await response.json();
+            if (data.response) {
+                addMessage(data.response, 'bot');
+            } else {
+                console.warn("Empty response from AI");
+                addMessage("I am thinking...", "bot");
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            addMessage('Sorry, I encountered an error.', 'bot');
+        }
+    }
+
+    function addMessage(text, sender) {
+        if (!text) return;
+
+        const messagesDiv = document.getElementById('ai-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `ai-message ai-${sender}-message`;
+        messageDiv.textContent = text;
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Voice Input Setup (Simplified)
+    function startVoiceInput() {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert('Voice input not supported in this browser.');
+            return;
+        }
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = function () {
+            isRecording = true;
+            document.getElementById('ai-input').placeholder = "Listening...";
+        };
+
+        recognition.onend = function () {
+            isRecording = false;
+            document.getElementById('ai-input').placeholder = "Type a message...";
+        };
+
+        recognition.onresult = function (event) {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('ai-input').value = transcript;
+            sendMessage();
+        };
+
+        recognition.start();
+    }
+</script>
