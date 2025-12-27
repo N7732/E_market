@@ -71,8 +71,7 @@ class ChatService:
             content=content,
             metadata=metadata or {}
         )
-        
-        # Update session timestamp
+
         session.save(update_fields=['updated_at'])
         
         return message

@@ -633,3 +633,4 @@ def vendor_dashboard(request):
     }
     
     return render(request, 'vendor/dashboard.html', context)
+

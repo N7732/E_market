@@ -1,6 +1,7 @@
 <!-- templates/Register&login/register.html -->
 {% extends "base.html" %}
 
+
 {% block title %}Register - SokHub{% endblock %}
 
 {% block content %}
@@ -15,7 +16,7 @@
                 <div class="card-body p-4 p-md-5">
                     <form method="post" novalidate>
                         {% csrf_token %}
-                        
+
                         <div class="row">
                             <!-- Username -->
                             <div class="col-md-6 mb-3">
@@ -24,11 +25,11 @@
                                 </label>
                                 {{ form.username }}
                                 {% if form.username.errors %}
-                                    <div class="text-danger small mt-1">{{ form.username.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.username.errors }}</div>
                                 {% endif %}
                                 <div class="form-text">Choose a unique username</div>
                             </div>
-                            
+
                             <!-- Email -->
                             <div class="col-md-6 mb-3">
                                 <label for="id_email" class="form-label fw-bold">
@@ -36,11 +37,11 @@
                                 </label>
                                 {{ form.email }}
                                 {% if form.email.errors %}
-                                    <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.email.errors }}</div>
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <!-- Password 1 -->
                             <div class="col-md-6 mb-3">
@@ -49,13 +50,13 @@
                                 </label>
                                 {{ form.password1 }}
                                 {% if form.password1.errors %}
-                                    <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
                                 {% endif %}
                                 <div class="form-text">
                                     <small>At least 8 characters with letters and numbers</small>
                                 </div>
                             </div>
-                            
+
                             <!-- Password 2 -->
                             <div class="col-md-6 mb-3">
                                 <label for="id_password2" class="form-label fw-bold">
@@ -63,11 +64,11 @@
                                 </label>
                                 {{ form.password2 }}
                                 {% if form.password2.errors %}
-                                    <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <!-- Phone -->
                             <div class="col-md-6 mb-3">
@@ -76,11 +77,11 @@
                                 </label>
                                 {{ form.phone }}
                                 {% if form.phone.errors %}
-                                    <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
                                 {% endif %}
                                 <div class="form-text">Format: 0788123456</div>
                             </div>
-                            
+
                             <!-- User Type -->
                             <div class="col-md-6 mb-3">
                                 <label for="id_user_type" class="form-label fw-bold">
@@ -88,11 +89,11 @@
                                 </label>
                                 {{ form.user_type }}
                                 {% if form.user_type.errors %}
-                                    <div class="text-danger small mt-1">{{ form.user_type.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.user_type.errors }}</div>
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <!-- Location -->
                         <div class="mb-3">
                             <label for="id_location" class="form-label fw-bold">
@@ -100,17 +101,17 @@
                             </label>
                             {{ form.location }}
                             {% if form.location.errors %}
-                                <div class="text-danger small mt-1">{{ form.location.errors }}</div>
+                            <div class="text-danger small mt-1">{{ form.location.errors }}</div>
                             {% endif %}
                         </div>
-                        
+
                         <!-- Vendor Fields (Hidden by default) -->
                         <div id="vendor-fields" style="display: none;">
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
                                 Vendor accounts require admin approval before you can start selling.
                             </div>
-                            
+
                             <div class="row">
                                 <!-- Business Name -->
                                 <div class="col-md-6 mb-3 vendor-field">
@@ -119,10 +120,10 @@
                                     </label>
                                     {{ form.business_name }}
                                     {% if form.business_name.errors %}
-                                        <div class="text-danger small mt-1">{{ form.business_name.errors }}</div>
+                                    <div class="text-danger small mt-1">{{ form.business_name.errors }}</div>
                                     {% endif %}
                                 </div>
-                                
+
                                 <!-- Tax ID -->
                                 <div class="col-md-6 mb-3 vendor-field">
                                     <label for="id_tax_id" class="form-label fw-bold">
@@ -130,12 +131,12 @@
                                     </label>
                                     {{ form.tax_id }}
                                     {% if form.tax_id.errors %}
-                                        <div class="text-danger small mt-1">{{ form.tax_id.errors }}</div>
+                                    <div class="text-danger small mt-1">{{ form.tax_id.errors }}</div>
                                     {% endif %}
                                     <div class="form-text"><small>Optional</small></div>
                                 </div>
                             </div>
-                            
+
                             <!-- Momo Number -->
                             <div class="mb-3 vendor-field">
                                 <label for="id_momo_number" class="form-label fw-bold">
@@ -143,11 +144,11 @@
                                 </label>
                                 {{ form.momo_number }}
                                 {% if form.momo_number.errors %}
-                                    <div class="text-danger small mt-1">{{ form.momo_number.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.momo_number.errors }}</div>
                                 {% endif %}
                                 <div class="form-text">Where customers will send payments</div>
                             </div>
-                            
+
                             <!-- Business Description -->
                             <div class="mb-3 vendor-field">
                                 <label for="id_business_description" class="form-label fw-bold">
@@ -155,22 +156,23 @@
                                 </label>
                                 {{ form.business_description }}
                                 {% if form.business_description.errors %}
-                                    <div class="text-danger small mt-1">{{ form.business_description.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.business_description.errors }}</div>
                                 {% endif %}
                                 <div class="form-text">Tell customers about your business</div>
                             </div>
                         </div>
-                        
+
                         <!-- Terms Agreement -->
                         <div class="mb-4">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="terms" required>
                                 <label class="form-check-label" for="terms">
-                                    I agree to the <a href="#" class="text-magenta">Terms of Service</a> and <a href="#" class="text-magenta">Privacy Policy</a>
+                                    I agree to the <a href="#" class="text-magenta">Terms of Service</a> and <a href="#"
+                                        class="text-magenta">Privacy Policy</a>
                                 </label>
                             </div>
                         </div>
-                        
+
                         <!-- Submit Button -->
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-magenta btn-lg">
@@ -178,22 +180,24 @@
                             </button>
                         </div>
                     </form>
-                    
+
+
+
                     <!-- Divider -->
                     <div class="text-center my-4">
                         <hr class="border-magenta">
                         <span class="px-3 bg-white">OR</span>
                     </div>
-                    
+
                     <!-- Login Link -->
                     <div class="text-center">
-                        <p>Already have an account? 
+                        <p>Already have an account?
                             <a href="{% url 'login' %}" class="text-magenta fw-bold">Login here</a>
                         </p>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Info Cards -->
             <div class="row mt-4">
                 <div class="col-md-6 mb-3">
@@ -201,7 +205,8 @@
                         <div class="card-body text-center">
                             <i class="fas fa-user fa-2x text-magenta mb-3"></i>
                             <h5 class="card-title">Customer Account</h5>
-                            <p class="card-text">Browse products, make purchases, track orders, and download invoices.</p>
+                            <p class="card-text">Browse products, make purchases, track orders, and download invoices.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -210,7 +215,8 @@
                         <div class="card-body text-center">
                             <i class="fas fa-store fa-2x text-magenta mb-3"></i>
                             <h5 class="card-title">Vendor Account</h5>
-                            <p class="card-text">Sell products, manage inventory, process orders, and receive payments via MTN Momo.</p>
+                            <p class="card-text">Sell products, manage inventory, process orders, and receive payments
+                                via MTN Momo.</p>
                         </div>
                     </div>
                 </div>
@@ -220,49 +226,51 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const userTypeSelect = document.getElementById('id_user_type');
-    const vendorFields = document.getElementById('vendor-fields');
-    const vendorInputs = document.querySelectorAll('.vendor-field');
-    
-    function toggleVendorFields() {
-        if (userTypeSelect.value === 'vendor') {
-            vendorFields.style.display = 'block';
-            vendorInputs.forEach(input => {
-                input.querySelector('input, textarea').required = true;
-            });
-        } else {
-            vendorFields.style.display = 'none';
-            vendorInputs.forEach(input => {
-                input.querySelector('input, textarea').required = false;
-            });
+    document.addEventListener('DOMContentLoaded', function () {
+        const userTypeSelect = document.getElementById('id_user_type');
+        const vendorFields = document.getElementById('vendor-fields');
+        const vendorInputs = document.querySelectorAll('.vendor-field');
+
+        function toggleVendorFields() {
+            if (userTypeSelect.value === 'vendor') {
+                vendorFields.style.display = 'block';
+                vendorInputs.forEach(input => {
+                    input.querySelector('input, textarea').required = true;
+                });
+            } else {
+                vendorFields.style.display = 'none';
+                vendorInputs.forEach(input => {
+                    input.querySelector('input, textarea').required = false;
+                });
+            }
         }
-    }
-    
-    userTypeSelect.addEventListener('change', toggleVendorFields);
-    toggleVendorFields(); // Initial call
-});
+
+        userTypeSelect.addEventListener('change', toggleVendorFields);
+        toggleVendorFields(); // Initial call
+    });
 </script>
 
 <style>
-.form-control, .form-select {
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    transition: all 0.3s;
-}
+    .form-control,
+    .form-select {
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        transition: all 0.3s;
+    }
 
-.form-control:focus, .form-select:focus {
-    border-color: #FF00FF;
-    box-shadow: 0 0 0 0.25rem rgba(255, 0, 255, 0.25);
-}
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #FF00FF;
+        box-shadow: 0 0 0 0.25rem rgba(255, 0, 255, 0.25);
+    }
 
-#vendor-fields {
-    background-color: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    margin: 20px 0;
-    border-left: 4px solid #FF00FF;
-}
+    #vendor-fields {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        border-left: 4px solid #FF00FF;
+    }
 </style>
 {% endblock %}

@@ -12,7 +12,7 @@ class User(AbstractUser):
         ('admin', 'Admin'),
     )
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='customer')
-    phone = models.CharField(max_length=15, unique=True)
+    phone = models.CharField(max_length=15, blank=True)
     location = models.TextField()
     email = models.EmailField(unique=True)
     date_joined = models.DateTimeField(auto_now_add=True)

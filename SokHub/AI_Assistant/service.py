@@ -324,6 +324,26 @@ class EnhancedAIService:
             }
             return {'type': 'static_info', 'message': responses.get(language, responses.get('rw', responses['en'])), 'language': language}
 
+        # 6. Gratitude & Confirmation
+        # Handles "Ok", "Thanks", "Merci" to prevent searching for them as products
+        clean_msg = ''.join(c for c in msg_lower if c.isalnum() or c.isspace()).strip()
+        gratitude_keywords = [
+            'thanks', 'thank you', 'thank u', 'thx',
+            'ok', 'okay', 'okey', 'k', 'alright', 'fine', 'good', 'great', 'cool', 'done',
+            'murakoze', 'urakoze', 'sawa', 'yego', 'nibyiza',
+            'merci', 'bien', 'daccord', 'super',
+            'asante', 'shukrani', 'vizuri', 'poa'
+        ]
+        
+        if clean_msg in gratitude_keywords:
+             responses = {
+                'en': "👍 **You're welcome!** Happy to help. Let me know if you need anything else.",
+                'rw': "👍 **Murakaza neza!** Nshimishijwe no kubafasha. Mumbwire niba hari ikindi.",
+                'fr': "👍 **Avec plaisir!** N'hésitez pas si vous avez besoin d'autre chose.",
+                'sw': "👍 **Karibu sana!** Niambie kama unahitaji msaada mwingine."
+            }
+             return {'type': 'static_info', 'message': responses.get(language, responses['en']), 'language': language}
+
         return None
 
     @staticmethod
