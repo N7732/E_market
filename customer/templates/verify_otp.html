@@ -1,0 +1,148 @@
+
+{% extends "base.html" %}
+ {% load static %}
+
+  {% block content %}
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify OTP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fff0ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .otp-container {
+            background-color: #ff66ff;
+            padding: 40px 30px;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+            text-align: center;
+            color: #fff;
+            width: 360px;
+            max-width: 90%;
+        }
+
+        .otp-container h2 {
+            margin-bottom: 8px;
+            font-size: 26px;
+            font-weight: bold;
+        }
+
+        .otp-container p {
+            font-size: 15px;
+            margin-bottom: 25px;
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .message.error {
+            background-color: #ff4d4d;
+        }
+
+        .message.success {
+            background-color: #33cc33;
+        }
+
+        form input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+        }
+
+        form input[type="text"]:focus {
+            box-shadow: 0 0 5px #fff;
+        }
+
+        form button {
+            background-color: #fff;
+            color: #ff66ff;
+            font-size: 16px;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        form button:hover {
+            background-color: #ffe6ff;
+        }
+
+        .timer {
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .timer span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="otp-container">
+        <h2>Verify Your Account</h2>
+        <p>An OTP has been sent to your email. Enter it below:</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="otp" placeholder="Enter OTP" required>
+            <button type="submit">Verify</button>
+        </form>
+
+        <div class="timer">
+            OTP expires in <span id="countdown">600</span> seconds
+        </div>
+    </div>
+
+    <script>
+        // Smooth countdown timer in seconds
+        const countdownElement = document.getElementById('countdown');
+        let timeLeft = parseInt(countdownElement.innerText);
+
+        const timer = setInterval(() => {
+            if(timeLeft > 0){
+                timeLeft--;
+                countdownElement.innerText = timeLeft;
+            } else {
+                clearInterval(timer);
+                countdownElement.innerText = "Expired";
+                // Optional: disable form when OTP expires
+                document.querySelector('form button').disabled = true;
+                document.querySelector('form input').disabled = true;
+            }
+        }, 1000);
+    </script>
+</body>
+{% endblock %}
+</html>
+ 

@@ -1,0 +1,74 @@
+<!-- templates/emails/vendor_approved.html -->
+{% extends "emails/base_email.html" %}
+
+{% block title %}Congratulations! Your Vendor Account is Approved{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 30px;">
+    <div style="background-color: #4caf50; color: white; width: 80px; height: 80px; line-height: 80px; border-radius: 50%; margin: 0 auto 20px; font-size: 40px;">
+        ✓
+    </div>
+    <h2 style="color: #000000; margin-bottom: 10px;">Congratulations! 🎊</h2>
+    <p style="font-size: 18px; color: #666;">Your vendor account has been approved!</p>
+</div>
+
+<div class="success-box">
+    <h3 style="color: #000000; margin-top: 0; margin-bottom: 15px;">{{ business_name }} is now live on SokHub!</h3>
+    <p style="margin-bottom: 0;">
+        You can now start adding products, receiving orders, and growing your business on SokHub.
+    </p>
+</div>
+
+<div style="text-align: center; margin: 40px 0;">
+    <a href="{{ login_url }}" class="button">Go to Vendor Dashboard</a>
+</div>
+
+<div style="background: linear-gradient(135deg, #000000 0%, #333333 100%); color: white; padding: 25px; border-radius: 8px; margin: 30px 0;">
+    <h4 style="margin-top: 0; color: #FF00FF; margin-bottom: 15px;">🚀 Ready to Get Started?</h4>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+        <div style="background-color: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 6px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">1</div>
+            <strong>Add Products</strong>
+            <p style="font-size: 14px; margin-top: 5px; opacity: 0.9;">Upload your product catalog with images and descriptions</p>
+        </div>
+        
+        <div style="background-color: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 6px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">2</div>
+            <strong>Set Pricing</strong>
+            <p style="font-size: 14px; margin-top: 5px; opacity: 0.9;">Configure prices, discounts, and shipping options</p>
+        </div>
+        
+        <div style="background-color: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 6px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">3</div>
+            <strong>Start Selling</strong>
+            <p style="font-size: 14px; margin-top: 5px; opacity: 0.9;">Receive orders and process payments via MTN Momo</p>
+        </div>
+    </div>
+</div>
+
+<h3 style="color: #000000; margin: 30px 0 15px 0;">Important Information:</h3>
+<ul class="feature-list">
+    <li>Your default MTN Momo number: {{ vendor.default_momo_number }}</li>
+    <li>Payment processing time: 24-48 hours</li>
+    <li>Commission rate: 5% per successful transaction</li>
+    <li>Payout schedule: Every Friday</li>
+    <li>Customer support available 24/7</li>
+</ul>
+
+<div class="info-box">
+    <h4 style="color: #000000; margin-top: 0;">Need Help?</h4>
+    <p style="margin-bottom: 10px;">
+        Check out our <a href="{{ settings.SITE_URL }}/vendor/guide" style="color: #FF00FF; text-decoration: none;">Vendor Guide</a> 
+        for detailed instructions on getting started.
+    </p>
+    <p style="margin-bottom: 0;">
+        Or contact our vendor support team at 
+        <a href="mailto:vendors@yourdomain.com" style="color: #FF00FF; text-decoration: none;">vendors@yourdomain.com</a>
+    </p>
+</div>
+
+<p style="text-align: center; margin-top: 40px; font-weight: bold;">
+    Welcome to the SokHub vendor community! We're excited to help you grow. 🌟
+</p>
+{% endblock %}

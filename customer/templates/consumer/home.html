@@ -1,0 +1,295 @@
+<!-- templates/customer/home.html -->
+{% extends "base.html" %}
+
+{% block title %}SokHub - Your Marketplace{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), 
+                    url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        border-radius: 0 0 30px 30px;
+        margin-bottom: 60px;
+    }
+    
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .hero-title span {
+        color: #FF00FF;
+    }
+    
+    .feature-card {
+        transition: transform 0.3s;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+    }
+    
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 32px;
+    }
+    
+    .feature-icon.customer {
+        background: rgba(255, 0, 255, 0.1);
+        color: #FF00FF;
+    }
+    
+    .feature-icon.vendor {
+        background: rgba(0, 128, 0, 0.1);
+        color: #00FF00;
+    }
+    
+    .cta-section {
+        background: linear-gradient(135deg, #000000, #2d2d2d);
+        color: white;
+        padding: 80px 0;
+        border-radius: 30px;
+        margin: 80px 0;
+    }
+    
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #FF00FF;
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="hero-title">
+                    Welcome to <span>SokHub</span>
+                </h1>
+                <p class="lead mb-4">
+                    Your trusted marketplace for buying and selling products. 
+                    Secure payments, reliable vendors, and excellent customer service.
+                </p>
+                <div class="d-flex gap-3">
+                    {% if user.is_authenticated %}
+                        {% if user.user_type == 'customer' %}
+                            <a href="{% url 'customer_dashboard' %}" class="btn btn-magenta btn-lg px-4">
+                                <i class="fas fa-tachometer-alt me-2"></i> Go to Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{% url 'vendor_dashboard' %}" class="btn btn-magenta btn-lg px-4">
+                                <i class="fas fa-store me-2"></i> Vendor Dashboard
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'register' %}" class="btn btn-magenta btn-lg px-4">
+                            <i class="fas fa-user-plus me-2"></i> Get Started
+                        </a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">
+                            <i class="fas fa-sign-in-alt me-2"></i> Login
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                         alt="Marketplace" class="img-fluid rounded-3 shadow-lg">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="container mb-5">
+    <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold mb-3">Why Choose SokHub?</h2>
+        <p class="lead text-muted">Experience the best marketplace platform with these features</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card feature-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon customer">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4 class="card-title">Secure Payments</h4>
+                    <p class="card-text">MTN Momo integration with secure transaction processing and buyer protection.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon customer">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <h4 class="card-title">Digital Invoices</h4>
+                    <p class="card-text">Download PDF invoices for all your purchases. Keep track of your orders easily.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon vendor">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h4 class="card-title">Vendor Dashboard</h4>
+                    <p class="card-text">Advanced dashboard for vendors to manage products, orders, and analytics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h2 class="display-5 fw-bold mb-3">Ready to Get Started?</h2>
+                <p class="lead mb-4">
+                    Join thousands of satisfied customers and vendors on SokHub. 
+                    Whether you want to shop or sell, we've got you covered.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{% url 'register' %}" class="btn btn-magenta btn-lg px-4">
+                        <i class="fas fa-user-plus me-2"></i> Sign Up Free
+                    </a>
+                    <a href="{% url 'about' %}" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-info-circle me-2"></i> Learn More
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="row text-center mt-4 mt-lg-0">
+                    <div class="col-6">
+                        <p class="stat-number">500+</p>
+                        <p class="text-muted">Active Vendors</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="stat-number">10K+</p>
+                        <p class="text-muted">Happy Customers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="container mb-5">
+    <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold mb-3">How It Works</h2>
+        <p class="lead text-muted">Simple steps to start using SokHub</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card border-0 text-center p-4">
+                <div class="bg-black text-white rounded-circle mx-auto mb-4" 
+                     style="width: 80px; height: 80px; line-height: 80px; font-size: 32px;">
+                    1
+                </div>
+                <h4>Create Account</h4>
+                <p>Register as a customer or vendor. Vendors require quick admin approval.</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 text-center p-4">
+                <div class="bg-black text-white rounded-circle mx-auto mb-4" 
+                     style="width: 80px; height: 80px; line-height: 80px; font-size: 32px;">
+                    2
+                </div>
+                <h4>Browse or List</h4>
+                <p>Customers can browse products. Vendors can list their products for sale.</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 text-center p-4">
+                <div class="bg-black text-white rounded-circle mx-auto mb-4" 
+                     style="width: 80px; height: 80px; line-height: 80px; font-size: 32px;">
+                    3
+                </div>
+                <h4>Transact Securely</h4>
+                <p>Make payments via MTN Momo. Receive goods and download invoices.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials -->
+<section class="bg-light py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold mb-3">What Our Users Say</h2>
+            <p class="lead text-muted">Join our community of satisfied users</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-magenta text-white rounded-circle me-3" 
+                             style="width: 50px; height: 50px; line-height: 50px; text-align: center;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Alice M.</h5>
+                            <p class="text-muted mb-0">Customer</p>
+                        </div>
+                    </div>
+                    <p class="mb-0">
+                        "SokHub has made shopping so easy! The PDF invoices are perfect for record keeping."
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-magenta text-white rounded-circle me-3" 
+                             style="width: 50px; height: 50px; line-height: 50px; text-align: center;">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">John D.</h5>
+                            <p class="text-muted mb-0">Vendor</p>
+                        </div>
+                    </div>
+                    <p class="mb-0">
+                        "The vendor dashboard is excellent! I can manage all my orders and inventory in one place."
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

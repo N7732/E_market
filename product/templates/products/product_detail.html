@@ -1,0 +1,1198 @@
+<!-- templates/products/product_detail.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - SokHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Main Product Container */
+    .product-detail-container {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 40px;
+        border-left: 5px solid #FF00FF;
+    }
+
+    /* Product Images Section */
+    .product-image-main {
+        height: 500px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 15px;
+    }
+
+    .product-image-main img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 20px;
+    }
+
+    .image-badges {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 2;
+    }
+
+    .discount-badge-large {
+        background: linear-gradient(135deg, #FF00FF, #cc00cc);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        display: inline-block;
+    }
+
+    .vendor-badge-large {
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-block;
+        backdrop-filter: blur(5px);
+    }
+
+    .thumbnail-grid {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 10px 0;
+    }
+
+    .thumbnail {
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #eee;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .thumbnail.active {
+        border-color: #FF00FF;
+    }
+
+    .thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Product Info Section */
+    .product-info-section {
+        padding: 30px;
+    }
+
+    .product-title-large {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #000;
+        margin-bottom: 10px;
+        line-height: 1.3;
+    }
+
+    .product-category {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+    }
+
+    .product-category a {
+        color: #FF00FF;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .product-category a:hover {
+        text-decoration: underline;
+    }
+
+    .price-section {
+        background: #f9f9f9;
+        padding: 25px;
+        border-radius: 12px;
+        margin: 25px 0;
+    }
+
+    .current-price-large {
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #000;
+    }
+
+    .original-price-large {
+        font-size: 1.5rem;
+        color: #999;
+        text-decoration: line-through;
+        margin-left: 15px;
+    }
+
+    .savings-info {
+        color: #FF00FF;
+        font-weight: 600;
+        margin-top: 10px;
+        font-size: 1.1rem;
+    }
+
+    .stock-info {
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: inline-block;
+    }
+
+    .in-stock {
+        background: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+
+    .low-stock {
+        background: #fff3cd;
+        color: #856404;
+        border-left: 4px solid #ffc107;
+    }
+
+    .out-of-stock {
+        background: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+
+    /* Vendor Info Card */
+    .vendor-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 25px 0;
+        border-left: 4px solid #000;
+    }
+
+    .vendor-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .vendor-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: #FF00FF;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .vendor-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .vendor-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #000;
+        margin-bottom: 5px;
+    }
+
+    .vendor-rating {
+        color: #ffc107;
+        font-size: 0.9rem;
+    }
+
+    .vendor-stats {
+        display: flex;
+        gap: 20px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        min-width: 100px;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #FF00FF;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    /* Login Prompt for non-logged in users */
+    .login-prompt {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 12px;
+        margin: 25px 0;
+        text-align: center;
+    }
+
+    .login-prompt h5 {
+        margin-bottom: 15px;
+        font-weight: 700;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin: 30px 0;
+    }
+
+    .btn-add-cart-lg {
+        background: #FF00FF;
+        color: white;
+        border: none;
+        padding: 18px 35px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-add-cart-lg:hover {
+        background: #cc00cc;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(255, 0, 255, 0.3);
+    }
+
+    .btn-wishlist-lg {
+        background: white;
+        color: #333;
+        border: 2px solid #eee;
+        padding: 18px 35px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-width: 200px;
+    }
+
+    .btn-wishlist-lg:hover {
+        border-color: #FF00FF;
+        color: #FF00FF;
+    }
+
+    /* Quantity Selector */
+    .quantity-selector-lg {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin: 25px 0;
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    .qty-btn-lg {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #FF00FF;
+        background: white;
+        color: #FF00FF;
+        font-size: 1.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+        font-weight: bold;
+    }
+
+    .qty-btn-lg:hover {
+        background: #FF00FF;
+        color: white;
+    }
+
+    .qty-input-lg {
+        width: 80px;
+        height: 50px;
+        text-align: center;
+        border: 2px solid #eee;
+        border-radius: 10px;
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+
+    /* Product Tabs */
+    .product-tabs-section {
+        margin-top: 40px;
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .tab-nav {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #eee;
+        flex-wrap: wrap;
+    }
+
+    .tab-nav-btn {
+        padding: 15px 30px;
+        background: none;
+        border: none;
+        font-weight: 700;
+        color: #666;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s;
+        font-size: 1.1rem;
+    }
+
+    .tab-nav-btn.active {
+        color: #FF00FF;
+    }
+
+    .tab-nav-btn.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: #FF00FF;
+        border-radius: 2px;
+    }
+
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.5s;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Description */
+    .product-description {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #444;
+    }
+
+    .product-description h3 {
+        color: #000;
+        margin-top: 25px;
+        margin-bottom: 15px;
+        font-weight: 700;
+    }
+
+    .product-description ul,
+    .product-description ol {
+        padding-left: 25px;
+        margin-bottom: 20px;
+    }
+
+    .product-description li {
+        margin-bottom: 8px;
+    }
+
+    /* Specifications */
+    .specs-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #f9f9f9;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .specs-table tr {
+        border-bottom: 1px solid #eee;
+    }
+
+    .specs-table tr:last-child {
+        border-bottom: none;
+    }
+
+    .specs-table th {
+        background: #000;
+        color: white;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        width: 30%;
+    }
+
+    .specs-table td {
+        padding: 15px;
+        background: white;
+    }
+
+    /* Reviews */
+    .review-card {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        border-left: 4px solid #FF00FF;
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .review-user {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: #FF00FF;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    .review-rating {
+        color: #ffc107;
+    }
+
+    .review-date {
+        color: #999;
+        font-size: 0.9rem;
+    }
+
+    /* Related Products */
+    .related-products {
+        margin-top: 60px;
+    }
+
+    .related-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #000;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #FF00FF;
+        display: inline-block;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .product-image-main {
+            height: 400px;
+        }
+
+        .current-price-large {
+            font-size: 2rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-add-cart-lg,
+        .btn-wishlist-lg {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .product-image-main {
+            height: 350px;
+        }
+
+        .product-title-large {
+            font-size: 1.6rem;
+        }
+
+        .tab-nav {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tab-nav-btn {
+            width: 100%;
+            text-align: left;
+            padding: 12px 20px;
+        }
+
+        .vendor-stats {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-item {
+            width: 100%;
+        }
+    }
+
+    /* Share Buttons */
+    .share-section {
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid #eee;
+    }
+
+    .share-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+    }
+
+    .share-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.3rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+    }
+
+    .share-btn:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .facebook {
+        background: #3b5998;
+    }
+
+    .twitter {
+        background: #1da1f2;
+    }
+
+    .whatsapp {
+        background: #25d366;
+    }
+
+    .link {
+        background: #FF00FF;
+    }
+
+    /* Disabled buttons for non-logged in users */
+    .btn-disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'product_list' %}">Products</a></li>
+            {% if product.category %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'category_detail' product.category.slug %}">
+                    {{ product.category.name }}
+                </a>
+            </li>
+            {% else %}
+            <li class="breadcrumb-item text-muted">Uncategorized</li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">{{ product.name|truncatechars:30 }}</li>
+        </ol>
+    </nav>
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+        <a href="{% url 'product_list' %}" class="btn btn-outline-magenta btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to products
+        </a>
+        <a href="{% url 'cart' %}" class="btn btn-outline-dark btn-sm">
+            <i class="fas fa-shopping-cart me-1"></i> Go to cart
+        </a>
+        {% if prev_product %}
+        <a href="{% url 'product_detail' prev_product.slug %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-chevron-left me-1"></i> Previous
+        </a>
+        {% endif %}
+        {% if next_product %}
+        <a href="{% url 'product_detail' next_product.slug %}" class="btn btn-outline-secondary btn-sm">
+            Next <i class="fas fa-chevron-right ms-1"></i>
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="product-detail-container">
+        <div class="row">
+            <!-- Product Images -->
+            <div class="col-lg-6 p-4">
+                <div class="product-image-main">
+                    {% if product.main_image %}
+                    <img src="{{ product.main_image.url }}" alt="{{ product.name }}" id="mainProductImage">
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <i class="fas fa-image fa-6x text-muted"></i>
+                    </div>
+                    {% endif %}
+
+                    <!-- Discount and Vendor Badges -->
+
+                </div>
+
+                <!-- Thumbnails -->
+                {% if product.images.all %}
+                <div class="thumbnail-grid">
+                    <div class="thumbnail active" onclick="changeMainImage('{{ product.main_image.url }}', this)">
+                        <img src="{{ product.main_image.url }}" alt="{{ product.name }}">
+                    </div>
+                    {% for image in product.images.all %}
+                    <div class="thumbnail" onclick="changeMainImage('{{ image.image.url }}', this)">
+                        <img src="{{ image.image.url }}" alt="{{ product.name }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Product Information -->
+            <div class="col-lg-6 p-4">
+                <div class="product-info-section">
+                    <h1 class="product-title-large">{{ product.name }}</h1>
+
+                    <div class="product-category">
+                        Category:
+                        {% if product.category %}
+                        <a href="{% url 'category_detail' product.category.slug %}">{{ product.category.name }}</a>
+                        {% else %}
+                        <span class="text-muted">Uncategorized</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Product Rating -->
+                    {% if product.average_rating > 0 %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="product-rating me-3">
+                            {% for i in "12345"|make_list %}
+                            {% if forloop.counter <= product.average_rating %} <i class="fas fa-star"></i>
+                                {% else %}
+                                <i class="far fa-star"></i>
+                                {% endif %}
+                                {% endfor %}
+                        </div>
+                        <span class="text-muted">({{ reviews|length }} reviews)</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Price Section -->
+                    <div class="price-section">
+                        <div class="d-flex align-items-center">
+                            <span class="current-price-large">{{ product.price }} RWF</span>
+                            {% if product.compare_at_price %}
+                            <span class="original-price-large">{{ product.compare_at_price }} RWF</span>
+                            {% endif %}
+                        </div>
+
+                        {% if product.get_discount_percentage %}
+                        <div class="savings-info">
+                            <i class="fas fa-tag me-2"></i>
+                            You save {{ product.get_discount_amount }} RWF ({{ product.get_discount_percentage }}%)
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Stock Status -->
+                    {% if product.is_in_stock %}
+                    {% if product.get_available_quantity <= product.low_stock_threshold %} <div
+                        class="stock-info low-stock">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Low Stock - Only {{ product.get_available_quantity }} items left
+                </div>
+                {% else %}
+                <div class="stock-info in-stock">
+                    <i class="fas fa-check-circle me-2"></i>
+                    In Stock - {{ product.get_available_quantity }} items available
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="stock-info out-of-stock">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Out of Stock
+                </div>
+                {% endif %}
+
+                <!-- Vendor Information Card -->
+                <div class="vendor-card">
+                    <div class="vendor-header">
+                        <div class="vendor-avatar">
+                            {% if product.vendor.vendorprofile.profile_picture %}
+                            <img src="{{ product.vendor.vendorprofile.profile_picture.url }}"
+                                alt="{{ product.vendor.username }}">
+                            {% else %}
+                            {{ product.vendor.username|first|upper }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="vendor-name">
+                                {{ product.vendor.vendorprofile.business_name|default:product.vendor.username }}
+                            </div>
+                            <div class="vendor-rating">
+                                <i class="fas fa-star text-warning"></i>
+                                <span class="fw-bold">{{ vendor_stats.rating }}/5</span>
+                                <span class="text-muted small">({{ vendor_stats.review_count }} reviews)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 text-muted small">
+                        Trusted vendor on SokHub
+                    </div>
+
+                    <div class="vendor-stats">
+                        <div class="stat-item shadow-sm">
+                            <div class="stat-value">{{ vendor_stats.product_count }}</div>
+                            <div class="stat-label">Products</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ vendor_stats.positive_rating_percent }}%</div>
+                            <div class="stat-label">Positive Rating</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">
+                                {% if vendor_stats.time_on_platform %}
+                                {{ vendor_stats.time_on_platform }}
+                                {% else %}
+                                {% if product.vendor.date_joined %}
+                                    {{ product.vendor.date_joined|timesince }}
+                                {% else %}
+                                    New Vendor
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">On Platform</div>
+                        </div>
+                    </div>
+
+                    <a href="{% url 'vendor_profile' %}" class="btn btn-outline-dark mt-3">
+                        <i class="fas fa-store me-2"></i> View Vendor Store
+                    </a>
+                </div>
+
+                {% if user.is_authenticated %}
+                <!-- Logged in users can order -->
+                {% if product.is_in_stock %}
+                <form method="post" action="{% url 'cart_add' product.id %}">
+                    {% csrf_token %}
+                    <!-- Quantity Selector -->
+                    <div class="quantity-selector-lg">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fw-bold">Quantity:</span>
+                            <button class="qty-btn-lg" type="button" onclick="decreaseQty()">-</button>
+                            <input type="number" id="productQty" name="quantity" value="1" min="1"
+                                max="{{ product.get_available_quantity }}" class="qty-input-lg">
+                            <button class="qty-btn-lg" type="button" onclick="increaseQty()">+</button>
+                        </div>
+                        <span class="text-muted ms-3">Max: {{ product.get_available_quantity }} units</span>
+                    </div>
+
+                    <!-- Action Buttons for logged in users -->
+                    <div class="action-buttons">
+                        <button class="btn-add-cart-lg" type="submit">
+                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                        </button>
+                        <a class="btn-wishlist-lg" href="{% url 'cart' %}">
+                            <i class="fas fa-shopping-basket"></i> View Cart
+                        </a>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-warning mt-4">
+                    <i class="fas fa-bell me-2"></i>
+                    This product is currently out of stock. Please check back soon.
+                </div>
+                <a class="btn-wishlist-lg mt-3" href="{% url 'product_list' %}">
+                    <i class="fas fa-arrow-left"></i> Back to Products
+                </a>
+                {% endif %}
+                {% else %}
+                <!-- Non-logged in users see login prompt -->
+                <div class="login-prompt">
+                    <h5><i class="fas fa-lock me-2"></i> Login Required to Order</h5>
+                    <p class="mb-4">Please log in to add this product to your cart or wishlist.</p>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-light">
+                            <i class="fas fa-sign-in-alt me-2"></i> Login
+                        </a>
+                        <a href="{% url 'register' %}?next={{ request.path }}" class="btn btn-outline-light">
+                            <i class="fas fa-user-plus me-2"></i> Register
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Show quantity selector but disabled -->
+                <div class="quantity-selector-lg opacity-50">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="fw-bold">Quantity:</span>
+                        <button class="qty-btn-lg" disabled>-</button>
+                        <input type="number" value="1" class="qty-input-lg" disabled>
+                        <button class="qty-btn-lg" disabled>+</button>
+                    </div>
+                    <span class="text-muted ms-3">Login to purchase</span>
+                </div>
+
+                <!-- Disabled action buttons -->
+                <div class="action-buttons">
+                    <button class="btn-add-cart-lg btn-disabled" disabled>
+                        <i class="fas fa-shopping-cart"></i> Login to Add to Cart
+                    </button>
+                    <a class="btn-wishlist-lg btn-disabled disabled" aria-disabled="true">
+                        <i class="fas fa-shopping-basket"></i> View Cart
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Share Product (Available to all users) -->
+                <div class="share-section">
+                    <h6 class="fw-bold mb-3">Share this product:</h6>
+                    <div class="share-buttons">
+                        <a href="#" class="share-btn facebook" onclick="shareFacebook()">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="share-btn twitter" onclick="shareTwitter()">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="share-btn whatsapp" onclick="shareWhatsApp()">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        <a href="#" class="share-btn link" onclick="copyLink()">
+                            <i class="fas fa-link"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Tabs Section (Available to all users) -->
+<div class="product-tabs-section">
+    <div class="tab-nav">
+        <button class="tab-nav-btn active" onclick="openTab('descriptionTab', this)">Description</button>
+        <button class="tab-nav-btn" onclick="openTab('specsTab', this)">Specifications</button>
+        <button class="tab-nav-btn" onclick="openTab('reviewsTab', this)">Reviews</button>
+        <button class="tab-nav-btn" onclick="openTab('shippingTab', this)">Shipping & Returns</button>
+    </div>
+
+    <!-- Description Tab -->
+    <div id="descriptionTab" class="tab-content active">
+        <div class="product-description">
+            {{ product.description|linebreaks }}
+
+            {% if not product.description %}
+            <p class="text-muted">No detailed description available for this product.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Specifications Tab -->
+    <div id="specsTab" class="tab-content">
+        {% if product.specifications %}
+        <div class="table-responsive">
+            <table class="specs-table">
+                <tbody>
+                    {% for key, value in product.specifications.items %}
+                    <tr>
+                        <th>{{ key }}</th>
+                        <td>{{ value }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No specifications available for this product.</p>
+        {% endif %}
+    </div>
+
+    <!-- Reviews Tab -->
+    <div id="reviewsTab" class="tab-content">
+        {% if reviews %}
+        <h4 class="mb-4">Customer Reviews ({{ reviews|length }})</h4>
+        {% for review in reviews %}
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-user">
+                    <div class="user-avatar">
+                        {{ review.customer.username|first|upper }}
+                    </div>
+                    <div>
+                        <strong>{{ review.customer.username }}</strong>
+                        <div class="review-rating mt-1">
+                            {% for i in "12345"|make_list %}
+                            {% if forloop.counter <= review.rating %} <i class="fas fa-star"></i>
+                                {% else %}
+                                <i class="far fa-star"></i>
+                                {% endif %}
+                                {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="review-date">
+                    {{ review.created_at|date:"F d, Y" }}
+                </div>
+            </div>
+            <p>{{ review.comment }}</p>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+            <h4>No Reviews Yet</h4>
+            <p class="text-muted">Be the first to review this product!</p>
+        </div>
+        {% endif %}
+
+        <!-- Review form - only for logged in users -->
+        {% if can_review and review_form %}
+        <div class="mt-5">
+            <h5>Write a Review</h5>
+            <form method="post" action="{% url 'add_review' product.id %}" class="mt-3">
+                {% csrf_token %}
+                {% if review_form.errors %}
+                <div class="alert alert-danger">
+                    Please fix the errors below and try again.
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <label class="form-label">Rating</label>
+                    {{ review_form.rating }}
+                </div>
+                <div class="mb-3">
+                    {{ review_form.title.label_tag }}
+                    {{ review_form.title }}
+                </div>
+                <div class="mb-3">
+                    {{ review_form.comment.label_tag }}
+                    {{ review_form.comment }}
+                </div>
+                <button type="submit" class="btn btn-magenta">Submit Review</button>
+            </form>
+        </div>
+        {% elif has_reviewed %}
+        <div class="alert alert-success mt-4">
+            <i class="fas fa-check-circle me-2"></i>You already reviewed this product. Thanks for your feedback!
+        </div>
+        {% else %}
+        <div class="alert alert-info mt-4">
+            <i class="fas fa-info-circle me-2"></i>
+            <a href="{% url 'login' %}?next={{ request.path }}" class="alert-link">Login</a> to write a review for this
+            product.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Shipping Tab -->
+    <div id="shippingTab" class="tab-content">
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="mb-3">Shipping Information</h5>
+                <ul class="list-group list-group-flush mb-4">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Standard Delivery</span>
+                        <strong>2,000 RWF</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Express Delivery</span>
+                        <strong>5,000 RWF</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Free Shipping</span>
+                        <strong>On orders over 50,000 RWF</strong>
+                    </li>
+                    <li class="list-group-item">
+                        <small class="text-muted">Delivery within 2-5 business days in Rwanda</small>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h5 class="mb-3">Return Policy</h5>
+                <div class="card border-0 bg-light">
+                    <div class="card-body">
+                        <p><i class="fas fa-check text-success me-2"></i> 30-day return policy</p>
+                        <p><i class="fas fa-check text-success me-2"></i> Items must be in original condition</p>
+                        <p><i class="fas fa-check text-success me-2"></i> Refund processed within 5-7 business days</p>
+                        <p><i class="fas fa-check text-success me-2"></i> Free return shipping for defective items</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Related Products -->
+{% if related_products %}
+<div class="related-products">
+    <h2 class="related-title">Related Products</h2>
+    <div class="row">
+        {% for related in related_products %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            {% include "includes/product_card.html" with product=related %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Change main product image
+    function changeMainImage(imageUrl, element) {
+        document.getElementById('mainProductImage').src = imageUrl;
+
+        // Update active thumbnail
+        if (element) {
+            document.querySelectorAll('.thumbnail').forEach(thumb => {
+                thumb.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+    }
+
+    // Quantity controls
+    function decreaseQty() {
+        const input = document.getElementById('productQty');
+        if (parseInt(input.value) > 1) {
+            input.value = parseInt(input.value) - 1;
+        }
+    }
+
+    function increaseQty() {
+        const input = document.getElementById('productQty');
+        const max = parseInt(input.max);
+        if (parseInt(input.value) < max) {
+            input.value = parseInt(input.value) + 1;
+        }
+    }
+
+    // Tab switching
+    function openTab(tabId, element) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.tab-nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected tab
+        document.getElementById(tabId).classList.add('active');
+
+        // Activate clicked button
+        if (element) {
+            element.classList.add('active');
+        }
+    }
+
+    // Share functions (available to all users)
+    function shareFacebook() {
+        const url = window.location.href;
+        const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+
+    function shareTwitter() {
+        const url = window.location.href;
+        const text = "Check out this product: {{ product.name|truncatechars:50 }}";
+        const shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+        window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+
+    function shareWhatsApp() {
+        const url = window.location.href;
+        const text = "Check out this product: {{ product.name|truncatechars:50 }} - " + url;
+        const shareUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+
+    function copyLink() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Product link copied to clipboard!');
+        });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function () {
+        // Set max quantity input
+        const maxQty = {{ product.get_available_quantity|default: "100"
+    }};
+    const qtyInput = document.getElementById('productQty');
+    if (qtyInput) {
+        qtyInput.max = maxQty;
+    }
+    });
+</script>
+{% endblock %}

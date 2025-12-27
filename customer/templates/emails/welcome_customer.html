@@ -1,0 +1,48 @@
+<!-- templates/emails/welcome_customer.html -->
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome to SokHub!{% endblock %}
+
+{% block content %}
+<h2 style="color: #000000; margin-bottom: 20px;">Welcome to SokHub, {{ user.username }}! 🎉</h2>
+
+<p style="margin-bottom: 20px; font-size: 16px;">
+    Thank you for joining SokHub! We're thrilled to have you as part of our community. 
+    Your account has been successfully created and you're ready to start shopping.
+</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ settings.SITE_URL }}/products" class="button">Start Shopping Now</a>
+</div>
+
+<div class="info-box">
+    <h3 style="color: #000000; margin-top: 0; margin-bottom: 15px;">Your Account Details:</h3>
+    <p style="margin: 5px 0;"><strong>Username:</strong> {{ user.username }}</p>
+    <p style="margin: 5px 0;"><strong>Email:</strong> {{ user.email }}</p>
+    <p style="margin: 5px 0;"><strong>Phone:</strong> {{ user.phone }}</p>
+    <p style="margin: 5px 0;"><strong>Account Type:</strong> Customer</p>
+</div>
+
+<h3 style="color: #000000; margin: 30px 0 15px 0;">What You Can Do on SokHub:</h3>
+<ul class="feature-list">
+    <li>Browse thousands of products from verified vendors</li>
+    <li>Secure payments via MTN Momo</li>
+    <li>Real-time order tracking</li>
+    <li>Download PDF invoices for all purchases</li>
+    <li>24/7 customer support</li>
+    <li>Exclusive member discounts</li>
+</ul>
+
+<div class="warning-box">
+    <h4 style="color: #000000; margin-top: 0;">Security Tip:</h4>
+    <p style="margin-bottom: 0;">
+        Keep your account secure by not sharing your password with anyone. 
+        SokHub will never ask for your password via email.
+    </p>
+</div>
+
+<p style="margin-top: 30px; text-align: center;">
+    Need help? Our support team is always here for you at 
+    <a href="mailto:support@yourdomain.com" style="color: #FF00FF; text-decoration: none;">support@yourdomain.com</a>
+</p>
+{% endblock %}

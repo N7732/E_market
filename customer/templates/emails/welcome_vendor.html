@@ -1,0 +1,68 @@
+<!-- templates/emails/welcome_vendor.html -->
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome Vendor to SokHub!{% endblock %}
+
+{% block content %}
+<h2 style="color: #000000; margin-bottom: 20px;">Welcome to SokHub Vendor Program, {{ business_name }}! 🛍️</h2>
+
+<p style="margin-bottom: 20px; font-size: 16px;">
+    Congratulations on taking the first step to grow your business with SokHub! 
+    Your vendor account has been created successfully.
+</p>
+
+<div class="info-box">
+    <h3 style="color: #000000; margin-top: 0; margin-bottom: 15px;">Registration Details:</h3>
+    <p style="margin: 5px 0;"><strong>Business Name:</strong> {{ business_name }}</p>
+    <p style="margin: 5px 0;"><strong>Account Owner:</strong> {{ user.username }}</p>
+    <p style="margin: 5px 0;"><strong>Email:</strong> {{ user.email }}</p>
+    <p style="margin: 5px 0;"><strong>Phone:</strong> {{ user.phone }}</p>
+    <p style="margin: 5px 0;">
+        <strong>Approval Status:</strong> 
+        <span style="color: {% if approval_status == 'pending' %}#ff9800{% else %}#4caf50{% endif %}; font-weight: bold;">
+            {{ approval_status|title }}
+        </span>
+    </p>
+</div>
+
+{% if approval_status == 'pending' %}
+<div class="warning-box">
+    <h4 style="color: #000000; margin-top: 0;">⏳ Pending Approval</h4>
+    <p style="margin-bottom: 10px;">
+        Your vendor account is currently under review by our admin team. 
+        This process usually takes 1-2 business days.
+    </p>
+    <p style="margin-bottom: 0;">
+        You will receive another email once your account is approved. 
+        Thank you for your patience!
+    </p>
+</div>
+{% endif %}
+
+<h3 style="color: #000000; margin: 30px 0 15px 0;">Next Steps for Vendors:</h3>
+<ul class="feature-list">
+    <li>Wait for admin approval (1-2 business days)</li>
+    <li>Once approved, set up your product catalog</li>
+    <li>Configure your payment settings (MTN Momo)</li>
+    <li>Start receiving orders from customers</li>
+    <li>Track sales and analytics in your dashboard</li>
+    <li>Manage inventory in real-time</li>
+</ul>
+
+<div style="background-color: #000000; color: white; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <h4 style="margin-top: 0; color: #FF00FF;">💡 Pro Tip:</h4>
+    <p style="margin-bottom: 0;">
+        While waiting for approval, you can prepare your product information, 
+        images, and pricing so you can hit the ground running!
+    </p>
+</div>
+
+<p style="text-align: center; margin-top: 30px;">
+    <a href="{{ settings.SITE_URL }}/vendor/setup" class="button button-secondary">Prepare Your Store</a>
+</p>
+
+<p style="margin-top: 30px; text-align: center; font-size: 14px; color: #666;">
+    Questions about the vendor program? Email us at 
+    <a href="mailto:vendors@yourdomain.com" style="color: #FF00FF; text-decoration: none;">vendors@yourdomain.com</a>
+</p>
+{% endblock %}
