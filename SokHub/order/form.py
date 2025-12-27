@@ -3,6 +3,7 @@ import re
 from django import forms
 from django.core.validators import MinValueValidator
 from .models import Order, CartItem, OrderNotification
+from django.core.exceptions import ValidationError
 
 class CheckoutForm(forms.ModelForm):
     """Form for checkout process"""
@@ -69,22 +70,51 @@ class CheckoutForm(forms.ModelForm):
         
         # Pre-fill with customer's default shipping address if available
         if self.customer and hasattr(self.customer, 'customerprofile'):
-            profile = self.customer.customerprofile
-            self.fields['shipping_address'].initial = profile.shipping_address
-            
-            # Format phone to local format if it's in +250 format
-            if self.customer.phone:
-                phone = self.customer.phone
-                if phone.startswith('+250'):
-                    phone = '0' + phone[4:]  # Convert +25078xxxxxxx to 078xxxxxxx
-                self.fields['shipping_phone'].initial = phone
+            try:
+                profile = self.customer.customerprofile
+                
+                # Check if profile has shipping_address field
+                if hasattr(profile, 'shipping_address'):
+                    self.fields['shipping_address'].initial = profile.shipping_address
+                
+                # Check if profile has any city-related field
+                # Try different possible field names
+                if hasattr(profile, 'city'):
+                    self.fields['shipping_city'].initial = profile.city
+                elif hasattr(profile, 'town'):
+                    self.fields['shipping_city'].initial = profile.town
+                elif hasattr(profile, 'location'):
+                    self.fields['shipping_city'].initial = profile.location
+                
+                # Format phone to local format if it's in +250 format
+                if self.customer.phone:
+                    phone = self.customer.phone
+                    if phone.startswith('+250'):
+                        phone = '0' + phone[4:]  # Convert +25078xxxxxxx to 078xxxxxxx
+                    self.fields['shipping_phone'].initial = phone
+            except AttributeError:
+                # If any attribute doesn't exist, just skip it
+                pass
+
     def clean_shipping_phone(self):
         phone = self.cleaned_data.get('shipping_phone')
-        if phone and phone.startswith('0'):
-            # Remove 0, add +250
-            return f'+250{phone[1:]}'
-        elif phone:
-            raise forms.ValidationError("Phone must start with 0")
+        if phone:
+            # Clean the phone number - remove spaces, dashes
+            phone = phone.strip().replace(' ', '').replace('-', '')
+            
+            if phone.startswith('0'):
+                if not phone.startswith(('078', '072')):
+                    raise forms.ValidationError("Phone number must start with 078 or 072")
+                if len(phone) != 10:
+                    raise forms.ValidationError("Phone number must be 10 digits (including the leading 0)")
+                # Remove 0, add +250
+                return f'+250{phone[1:]}'
+            elif phone.startswith('+250'):
+                if len(phone) != 13:  # +250 plus 9 digits
+                    raise forms.ValidationError("Invalid phone number format")
+                return phone
+            else:
+                raise forms.ValidationError("Phone number must start with 078, 072, or +250")
         return phone
 
     def clean_momo_number(self):
@@ -92,11 +122,22 @@ class CheckoutForm(forms.ModelForm):
         payment_method = self.cleaned_data.get('payment_method')
         
         if payment_method == 'momo' and momo:
+            # Clean the momo number - remove spaces, dashes
+            momo = momo.strip().replace(' ', '').replace('-', '')
+            
             if momo.startswith('0'):
+                if not momo.startswith(('078', '072')):
+                    raise forms.ValidationError("Mobile Money number must start with 078 or 072")
+                if len(momo) != 10:
+                    raise forms.ValidationError("Mobile Money number must be 10 digits (including the leading 0)")
                 # Remove 0, add +250
                 return f'+250{momo[1:]}'
+            elif momo.startswith('+250'):
+                if len(momo) != 13:  # +250 plus 9 digits
+                    raise forms.ValidationError("Invalid Mobile Money number format")
+                return momo
             else:
-                raise forms.ValidationError("Mobile Money must start with 0")
+                raise forms.ValidationError("Mobile Money number must start with 078, 072, or +250")
         
         return momo
         

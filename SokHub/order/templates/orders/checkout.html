@@ -1,304 +1,218 @@
-<!-- orders/checkout.html -->
+<!-- order/checkout.html -->
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Checkout | OrderApp Rwanda{% endblock %}
-
-{% block extra_css %}
-<style>
-    .payment-method-icon { font-size: 1.5rem; margin-right: 10px; }
-    .momo-color { color: #7c0080; }
-    .bank-color { color: #0066cc; }
-    .step-number {
-        background: linear-gradient(45deg, #8a2be2, #6a0dad);
-        color: white;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-    }
-    .magenta-btn {
-        background: linear-gradient(45deg, #8a2be2, #6a0dad);
-        border: none;
-        color: white;
-    }
-    .magenta-btn:hover {
-        background: linear-gradient(45deg, #9a3bf2, #7a1dbd);
-        color: white;
-    }
-    .section-card {
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .section-header {
-        background: linear-gradient(45deg, #8a2be2, #6a0dad);
-        color: white;
-        padding: 12px 20px;
-        margin-bottom: 0;
-    }
-    .compact-form .form-label {
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 5px;
-    }
-    .compact-form .form-control {
-        padding: 8px 12px;
-        font-size: 0.9rem;
-    }
-    .compact-form .row {
-        margin-bottom: 10px;
-    }
-    .summary-card {
-        position: sticky;
-        top: 20px;
-        border: 2px solid #8a2be2;
-    }
-    .form-error {
-        color: #dc3545;
-        font-size: 0.875em;
-        margin-top: 0.25rem;
-    }
-    .is-invalid {
-        border-color: #dc3545;
-    }
-    .form-check-input:checked {
-        background-color: #8a2be2;
-        border-color: #8a2be2;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container py-4">
-    <div class="row g-4">
-        <!-- Left Column - Checkout Form -->
+    <!-- Navigation Button -->
+    <div class="mb-4">
+        <a href="{% url 'cart' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Cart
+        </a>
+    </div>
+    
+    <div class="row">
+        <!-- Checkout Form - Left Side -->
         <div class="col-lg-8">
-            {% if messages %}
-            <div class="mb-3">
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+            <h2 class="mb-4">Checkout</h2>
             
-            <!-- SHOW FORM ERRORS AT TOP -->
-            {% if form.errors %}
-            <div class="alert alert-danger mb-3">
-                <h6><i class="bi bi-exclamation-triangle me-2"></i> Please correct the following errors:</h6>
-                <ul class="mb-0 mt-2">
-                    {% for field in form %}
-                        {% for error in field.errors %}
-                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                        {% endfor %}
-                    {% endfor %}
-                    {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-            
-            <form method="POST" action="{% url 'checkout' %}" id="checkout-form" novalidate>
+            <form method="post" id="checkoutForm">
                 {% csrf_token %}
                 
                 <!-- Shipping Information -->
-                <div class="mb-3">
-                    <div class="section-card">
-                        <h6 class="section-header mb-0">
-                            <i class="bi bi-truck me-2"></i>Shipping Information
-                        </h6>
-                        <div class="p-3 compact-form">
-                            <!-- Address Field -->
-                            <div class="mb-2">
-                                <label class="form-label">{{ form.shipping_address.label }}</label>
+                <div class="mb-4">
+                    <h4 class="mb-3">Shipping Information</h4>
+                    <div class="card p-3">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Shipping Address</label>
                                 {{ form.shipping_address }}
                                 {% if form.shipping_address.errors %}
-                                <div class="form-error">{{ form.shipping_address.errors.0 }}</div>
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.shipping_address.errors %}
+                                    <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                                 {% endif %}
                             </div>
                             
-                            <!-- City & Phone -->
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label">{{ form.shipping_city.label }}</label>
-                                    {{ form.shipping_city }}
-                                    {% if form.shipping_city.errors %}
-                                    <div class="form-error">{{ form.shipping_city.errors.0 }}</div>
-                                    {% endif %}
+                            <div class="col-md-6">
+                                <label class="form-label">City/Town</label>
+                                {{ form.shipping_city }}
+                                {% if form.shipping_city.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.shipping_city.errors %}
+                                    <div>{{ error }}</div>
+                                    {% endfor %}
                                 </div>
-                                
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label">{{ form.shipping_phone.label }}</label>
-                                    {{ form.shipping_phone }}
-                                    {% if form.shipping_phone.errors %}
-                                    <div class="form-error">{{ form.shipping_phone.errors.0 }}</div>
-                                    {% endif %}
-                                    <small class="text-muted d-block mt-1">Format: 078xxxxxxx or 072xxxxxxx</small>
-                                </div>
+                                {% endif %}
                             </div>
                             
-                            <!-- Shipping Notes -->
-                            <div class="mb-2">
-                                <label class="form-label">{{ form.shipping_notes.label }}</label>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                {{ form.shipping_phone }}
+                                {% if form.shipping_phone.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.shipping_phone.errors %}
+                                    <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label">Delivery Instructions (Optional)</label>
                                 {{ form.shipping_notes }}
                             </div>
                             
-                            <!-- Save Address Checkbox -->
-                            <div class="form-check">
-                                {{ form.save_shipping_address }}
-                                <label class="form-check-label" for="{{ form.save_shipping_address.id_for_label }}">
-                                    {{ form.save_shipping_address.label }}
-                                </label>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    {{ form.save_shipping_address }}
+                                    <label class="form-check-label" for="{{ form.save_shipping_address.id_for_label }}">
+                                        {{ form.save_shipping_address.label }}
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Payment Method -->
-                <div class="mb-3">
-                    <div class="section-card">
-                        <h6 class="section-header mb-0">
-                            <i class="bi bi-credit-card me-2"></i>Payment Method
-                        </h6>
-                        <div class="p-3">
-                            <!-- Payment Method Choices -->
-                            <div class="mb-3">
-                                {{ form.payment_method }}
-                                {% if form.payment_method.errors %}
-                                <div class="form-error">{{ form.payment_method.errors.0 }}</div>
+                <div class="mb-4">
+                    <h4 class="mb-3">Payment Method</h4>
+                    <div class="card p-3">
+                        <div class="mb-3">
+                            {% for radio in form.payment_method %}
+                            <div class="form-check mb-2">
+                                {{ radio.tag }}
+                                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                    {{ radio.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Mobile Money Field - Shown only when Mobile Money is selected -->
+                        <div id="momoField" class="mt-3" style="{% if form.payment_method.value != 'momo' %}display: none;{% endif %}">
+                            <div class="border-start border-3 border-primary ps-3">
+                                <label class="form-label fw-bold">{{ form.momo_number.label }}</label>
+                                {{ form.momo_number }}
+                                {% if form.momo_number.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.momo_number.errors %}
+                                    <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                                 {% endif %}
-                            </div>
-                            
-                            <!-- Mobile Money Details (shown only when selected) -->
-                            <div id="momoDetails" class="mt-2 mb-3">
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label">{{ form.momo_number.label }}</label>
-                                        {{ form.momo_number }}
-                                        {% if form.momo_number.errors %}
-                                        <div class="form-error">{{ form.momo_number.errors.0 }}</div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Provider</label>
-                                        <select class="form-select" name="momo_provider" id="momo_provider">
-                                            <option value="mtn" selected>MTN Mobile Money</option>
-                                            <option value="airtel">Airtel Money</option>
-                                        </select>
-                                    </div>
+                                <div class="text-muted small mt-1">{{ form.momo_number.help_text }}</div>
+                                
+                                <div class="mt-2 p-2 bg-light rounded">
+                                    <small><i class="fas fa-info-circle text-primary"></i> You'll receive a payment request on your phone</small>
                                 </div>
-                                <div class="alert alert-info small mt-2 mb-0 py-1">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    You'll receive a payment request on your phone
-                                </div>
-                            </div>
-                            
-                            <!-- Payment Method Notes -->
-                            <div id="codDetails" class="alert alert-warning small mt-2 mb-3 d-none py-1">
-                                <i class="bi bi-exclamation-triangle me-1"></i>
-                                Extra RWF 500 delivery fee applies for Cash on Delivery
-                            </div>
-                            
-                            <div id="bankDetails" class="alert alert-light small mt-2 mb-3 d-none py-1">
-                                <strong>Bank Transfer Details:</strong><br>
-                                • Bank: Bank of Kigali<br>
-                                • Account: 123-456-789-0<br>
-                                <em>Send proof to +250 788 123 456</em>
-                            </div>
-                            
-                            <!-- Order Notes -->
-                            <div class="mt-3">
-                                <label class="form-label">{{ form.customer_notes.label }}</label>
-                                {{ form.customer_notes }}
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Action Buttons -->
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'cart' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left me-1"></i>Back to Cart
-                    </a>
-                    <button type="submit" class="btn magenta-btn btn-lg px-4" id="submitBtn">
-                        <i class="bi bi-lock me-2"></i>Complete Order
-                    </button>
+                <!-- Customer Notes -->
+                <div class="mb-4">
+                    <h4 class="mb-3">Order Notes</h4>
+                    <div class="card p-3">
+                        {{ form.customer_notes }}
+                        <div class="text-muted small mt-1">Special instructions for your order...</div>
+                    </div>
                 </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg w-100">Place Order</button>
             </form>
         </div>
         
-        <!-- Right Column - Order Summary -->
+        <!-- Order Summary - Right Side with Magenta Accents -->
         <div class="col-lg-4">
-            <div class="card summary-card">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Order Summary</h5>
+            <div class="sticky-top" style="top: 20px;">
+                <h4 class="mb-3 text-magenta">Order Summary</h4>
+                <div class="card border-magenta shadow-sm">
+                    <div class="card-header bg-magenta text-white">
+                        <h5 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Your Order</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Cart Items List -->
+                        <div class="mb-3">
+                            {% if request.session.cart %}
+                                {% for product_id, item in request.session.cart.items %}
+                                <div class="border-bottom pb-3 mb-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <span class="fw-medium">{{ item.name }}</span>
+                                        <span class="fw-bold">RWF {{ item.price|floatformat:0 }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted small">
+                                        <span>Qty: {{ item.quantity }} × RWF {{ item.price|floatformat:0 }}</span>
+                                    </div>
+                                    {% if item.vendor_name %}
+                                    <div class="text-muted small">Vendor: {{ item.vendor_name }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-shopping-cart fa-2x mb-2"></i><br>
+                                    Your cart is empty
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Order Totals with Magenta Highlights -->
+                        <div class="border-top pt-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal</span>
+                                <span>RWF {{ subtotal|default:0|floatformat:0 }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 text-muted">
+                                <span>Shipping</span>
+                                <span class="text-success">RWF 0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 text-muted">
+                                <span>Tax (18%)</span>
+                                <span>RWF {{ tax|default:0|floatformat:0 }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 fw-bold fs-5 border-top pt-2 text-magenta">
+                                <span>TOTAL</span>
+                                <span>RWF {{ total|default:0|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Security & Payment Info with Magenta Accents -->
+                        <div class="alert alert-light border-magenta mt-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-lock text-magenta me-2"></i>
+                                <span class="fw-medium">Secure Payment</span>
+                            </div>
+                            <small class="text-muted">Your information is encrypted</small>
+                        </div>
+                        
+                        <div class="alert alert-light border-magenta">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-bolt text-magenta me-2"></i>
+                                <span class="fw-medium">Fastest: Mobile Money</span>
+                            </div>
+                            <small class="text-muted">Confirms instantly</small>
+                        </div>
+                        
+                        <!-- Important Notice -->
+                        <div class="alert alert-magenta-light border-magenta mt-3">
+                            <small>
+                                <i class="fas fa-exclamation-circle text-magenta me-1"></i>
+                                By placing your order, you agree to our <a href="#" class="text-magenta">Terms & Conditions</a>
+                            </small>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <!-- Cart Items -->
-                    <div class="mb-3">
-                        {% for item in cart_items %}
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="me-2">
-                                <div class="fw-medium small">{{ item.product.name }}</div>
-                                <div class="text-muted small">Qty: {{ item.quantity }} × RWF {{ item.product.price|floatformat:0 }}</div>
-                                {% if item.product.vendor %}
-                                <div class="text-muted small">Vendor: {{ item.product.vendor.business_name }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="fw-medium">RWF {{ item.total_price|floatformat:0 }}</div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    
-                    <hr class="my-3">
-                    
-                    <!-- Price Breakdown -->
-                    <div class="mb-2">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Subtotal</span>
-                            <span>RWF {{ subtotal|floatformat:0 }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Shipping</span>
-                            <span>RWF {{ shipping_cost|floatformat:0 }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Tax (18%)</span>
-                            <span>RWF {{ cart.get_tax|floatformat:0 }}</span>
-                        </div>
-                    </div>
-                    
-                    <hr class="my-3">
-                    
-                    <!-- Total -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">Total</h5>
-                        <h4 class="mb-0 text-primary">RWF {{ total|floatformat:0 }}</h4>
-                    </div>
-                    
-                    <!-- Secure Payment Info -->
-                    <div class="alert alert-success small py-2 mb-3">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-shield-check me-2"></i>
-                            <div>
-                                <strong class="d-block">Secure Payment</strong>
-                                <small>Your information is encrypted</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Payment Info -->
-                    <div class="alert alert-info small py-2 mb-0">
-                        <i class="bi bi-lightning-charge me-1 momo-color"></i>
-                        <strong>Fastest:</strong> Mobile Money confirms instantly
-                    </div>
+                
+                <!-- Continue Shopping Button -->
+                <div class="mt-3">
+                    <a href="{% url 'product_list' %}" class="btn btn-outline-magenta w-100">
+                        <i class="fas fa-plus me-2"></i> Continue Shopping
+                    </a>
                 </div>
             </div>
         </div>
@@ -306,140 +220,121 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Magenta Color Scheme */
+    .text-magenta {
+        color: #9B26B6 !important;
+    }
+    
+    .bg-magenta {
+        background-color: #9B26B6 !important;
+    }
+    
+    .border-magenta {
+        border-color: #9B26B6 !important;
+    }
+    
+    .btn-outline-magenta {
+        color: #9B26B6;
+        border-color: #9B26B6;
+    }
+    
+    .btn-outline-magenta:hover {
+        background-color: #9B26B6;
+        color: white;
+    }
+    
+    .alert-magenta-light {
+        background-color: rgba(155, 38, 182, 0.1);
+        border-color: rgba(155, 38, 182, 0.3);
+    }
+    
+    .card.border-magenta {
+        border-width: 2px;
+    }
+    
+    /* Hover effects for cart items */
+    .border-bottom:hover {
+        background-color: rgba(155, 38, 182, 0.05);
+        transition: background-color 0.3s ease;
+    }
+    
+    /* Place Order Button with Magenta */
+    .btn-primary {
+        background-color: #9B26B6;
+        border-color: #9B26B6;
+    }
+    
+    .btn-primary:hover {
+        background-color: #7a1f93;
+        border-color: #7a1f93;
+    }
+    
+    /* Sticky summary styling */
+    .sticky-top {
+        z-index: 1;
+    }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle payment method details
-    function togglePaymentDetails() {
-        const momoDetails = document.getElementById('momoDetails');
-        const codDetails = document.getElementById('codDetails');
-        const bankDetails = document.getElementById('bankDetails');
-        
-        // Hide all first
-        momoDetails.style.display = 'none';
-        codDetails.classList.add('d-none');
-        bankDetails.classList.add('d-none');
-        
-        // Get selected method
-        const selected = document.querySelector('input[name="payment_method"]:checked');
-        if (!selected) return;
-        
-        // Show selected method details
-        if (selected.value === 'momo') {
-            momoDetails.style.display = 'block';
+    // Toggle Mobile Money field based on payment method
+    const momoField = document.getElementById('momoField');
+    const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
+    
+    function toggleMomoField() {
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+        if (selectedPayment && selectedPayment.value === 'momo') {
+            momoField.style.display = 'block';
         } else {
-            momoDetails.style.display = 'none';
-        }
-        
-        if (selected.value === 'cod') {
-            codDetails.classList.remove('d-none');
-        } else if (selected.value === 'bank') {
-            bankDetails.classList.remove('d-none');
+            momoField.style.display = 'none';
         }
     }
     
-    // Initialize
-    togglePaymentDetails();
+    // Initial check
+    toggleMomoField();
     
-    // Listen for changes
-    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
-        radio.addEventListener('change', togglePaymentDetails);
+    // Add event listeners
+    paymentRadios.forEach(radio => {
+        radio.addEventListener('change', toggleMomoField);
     });
     
-    // Phone number formatting - accept local format (078xxxxxxx)
-    function formatPhoneNumber(input) {
-        let value = input.value.replace(/\D/g, '');
-        
-        // Keep local format for display
-        if (value.length > 9) value = value.slice(0, 9);
-        input.value = value;
-    }
-    
-    // Format phone inputs
-    const phoneInputs = document.querySelectorAll('input[name*="phone"]');
+    // Phone number validation
+    const phoneInputs = document.querySelectorAll('input[id*="phone"], input[id*="momo"]');
     phoneInputs.forEach(input => {
         input.addEventListener('input', function() {
-            formatPhoneNumber(this);
-        });
-        
-        // Clear error on input
-        input.addEventListener('input', function() {
-            this.classList.remove('is-invalid');
-        });
-    });
-    
-    // Form submission handling
-    const form = document.getElementById('checkout-form');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    form.addEventListener('submit', function(e) {
-        // Prevent double submission
-        if (submitBtn.disabled) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
-        
-        // Validate phone numbers - SIMPLE: only check if not empty
-        let isValid = true;
-        
-        phoneInputs.forEach(input => {
-            const value = input.value.replace(/\D/g, '');
-            if (!value) {
-                isValid = false;
-                input.classList.add('is-invalid');
-                alert('Please enter a phone number');
-                input.focus();
-            } else if (value.length < 9) {
-                isValid = false;
-                input.classList.add('is-invalid');
-                alert('Phone number should be at least 9 digits');
-                input.focus();
-            } else {
-                input.classList.remove('is-invalid');
-            }
-        });
-        
-        // Validate Mobile Money if selected
-        const isMomoSelected = document.querySelector('input[name="payment_method"]:checked').value === 'momo';
-        if (isMomoSelected) {
-            const momoNumber = document.querySelector('input[name="momo_number"]');
+            // Format: allow only numbers and +
+            this.value = this.value.replace(/[^0-9+]/g, '');
             
-            if (momoNumber) {
-                const momoValue = momoNumber.value.replace(/\D/g, '');
-                if (!momoValue) {
-                    e.preventDefault();
-                    momoNumber.classList.add('is-invalid');
-                    alert('Please enter your Mobile Money number');
-                    momoNumber.focus();
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="bi bi-lock me-2"></i>Complete Order';
-                    return false;
-                } else if (momoValue.length < 9) {
-                    e.preventDefault();
-                    momoNumber.classList.add('is-invalid');
-                    alert('Mobile Money number should be at least 9 digits');
-                    momoNumber.focus();
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="bi bi-lock me-2"></i>Complete Order';
-                    return false;
+            // Validate format
+            if (this.value.length > 0) {
+                const isValid = this.value.match(/^(0[78]\d{8}|\+250[78]\d{7})$/);
+                if (isValid) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
                 }
             }
-        }
-        
-        if (!isValid) {
-            e.preventDefault();
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="bi bi-lock me-2"></i>Complete Order';
-            return false;
-        }
-        
-        // All validations passed - allow form submission
-        return true;
+        });
     });
+    
+    // Add some interactive effects
+    const totalElement = document.querySelector('.text-magenta.fw-bold');
+    if (totalElement) {
+        totalElement.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        totalElement.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    }
 });
 </script>
 {% endblock %}

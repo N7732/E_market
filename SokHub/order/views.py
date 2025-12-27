@@ -1,6 +1,9 @@
 # orders/views.py
 from datetime import timedelta
 from decimal import Decimal
+import uuid
+import random
+import string
 import json
 from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
@@ -291,6 +294,33 @@ def checkout_view(request):
                             raise Exception(f"Cannot reserve stock for {item.product.name}")
                         reserved_items.append(item)
                     
+                    # Generate unique invoice number
+                    def generate_invoice_number():
+                        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+                        random_str = uuid.uuid4().hex[:6].upper()
+                        return f'INV-{timestamp}-{random_str}'
+                    
+                    # Generate unique short code (6 characters)
+                    def generate_short_code():
+                        # Generate a 6-character alphanumeric code
+                        characters = string.ascii_uppercase + string.digits
+                        return ''.join(random.choice(characters) for _ in range(6))
+                    
+                    # Generate both codes
+                    invoice_number = generate_invoice_number()
+                    short_code = generate_short_code()
+                    
+                    # Check if short code already exists (very unlikely but possible)
+                    max_retries = 5
+                    retry_count = 0
+                    while Order.objects.filter(short_code=short_code).exists() and retry_count < max_retries:
+                        short_code = generate_short_code()
+                        retry_count += 1
+                    
+                    if retry_count == max_retries:
+                        # Fallback: use part of UUID
+                        short_code = uuid.uuid4().hex[:6].upper()
+                    
                     # Create order
                     order = Order(
                         customer=request.user,
@@ -303,6 +333,8 @@ def checkout_view(request):
                         customer_notes=form.cleaned_data.get('customer_notes', ''),
                         status='confirmed',
                         payment_status='pending',
+                        invoice_number=invoice_number,
+                        short_code=short_code  # ADD THIS LINE
                     )
                     
                     if cart_items:
