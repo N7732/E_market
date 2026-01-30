@@ -174,6 +174,7 @@ def register(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
+            user = None
             try:
                 model_post_save.disconnect(create_user_profile, sender=User)
                 model_post_save.disconnect(save_user_profile, sender=User)
@@ -218,21 +219,6 @@ def register(request):
                         # Email should not break registration flow
                         logger.exception("Failed to send welcome email: %s", e)
 
-                    # Auto-login after registration
-                    login(request, user)
-
-                    # Different messages based on user type
-                    if user.user_type == 'vendor':
-                        messages.info(request,
-                                      'Vendor account created successfully! '
-                                      'Please wait for admin approval. You will receive an email when approved.'
-                                      )
-                        logger.info(f'New vendor registered: {user.username}')
-                    else:
-                        messages.success(request, 'Account created successfully! Welcome to SokHub!')
-
-                    return redirect_user_by_role(user)
-
             except Exception as e:
                 # Ensure signals are reconnected even if an error occurs during registration
                 try:
@@ -242,6 +228,26 @@ def register(request):
                     logger.warning("Failed to reconnect profile post_save receivers after exception.")
                 logger.exception("Registration error: %s", e)
                 messages.error(request, 'An error occurred during registration. Please try again.')
+                user = None  # Ensure user is None if transaction failed
+
+            # Perform login OUTSIDE the transaction block to avoid SessionInterrupted
+            if user:
+                # Specify the backend since we have multiple (allauth + django)
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                login(request, user)
+
+                # Different messages based on user type
+                if user.user_type == 'vendor':
+                    messages.info(request,
+                                  'Vendor account created successfully! '
+                                  'Please wait for admin approval. You will receive an email when approved.'
+                                  )
+                    logger.info(f'New vendor registered: {user.username}')
+                else:
+                    messages.success(request, 'Account created successfully! Welcome to SokHub!')
+
+                return redirect_user_by_role(user)
+
         else:
             # form invalid — show validation errors (helps debugging)
             for field, errors in form.errors.items():

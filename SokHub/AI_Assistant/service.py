@@ -35,10 +35,11 @@ except ImportError:
     Product = Category = Order = OrderItem = User = VendorProfile = ChatSession = MockModel
 
 class EnhancedAIService:
-    """Complete AI Service with DeepSeek RAG + Offline Analytics + Process Support + Diagnostics"""
+    """Complete AI Service with Gemini AI + Offline Analytics + Process Support + Diagnostics"""
     
-    DEEPSEEK_API_KEY = "sk-ea580c5c98fd456f820507a4acf6d57b"
-    DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
+    # Gemini Configuration
+    GEMINI_API_KEY = "AIzaSyC-Oeh8mKKsGm4jtg6627eiDI3epmQvKWI"
+    GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
     
     # Price guide templates
     PRICE_GUIDES = {
@@ -100,7 +101,7 @@ class EnhancedAIService:
                 }
 
             # 2. System Status Check (User requested explicit status)
-            if 'system status' in msg_lower or 'debug ai' in msg_lower or 'deepseek status' in msg_lower:
+            if 'system status' in msg_lower or 'debug ai' in msg_lower or 'gemini status' in msg_lower:
                 return EnhancedAIService._check_api_status()
 
             # 3. Static Knowledge & Analytics (Local) - Handles "How to buy", "Max price", etc.
@@ -122,12 +123,12 @@ class EnhancedAIService:
             if currency_converter.detect_currency_request(message, language):
                  return EnhancedAIService._handle_currency_conversion(message, language)
 
-            # --- PHASE 2: RAG / DEEPSEEK (Cloud Brain) ---
+            # --- PHASE 2: RAG / GEMINI (Cloud Brain) ---
             
             # Step A: Search system for ANY relevant data based on the message
             system_context = EnhancedAIService._search_system_data(message)
             
-            # Step B: Pass to DeepSeek (or Local Failover if API error)
+            # Step B: Pass to Gemini (or Local Failover if API error)
             response = EnhancedAIService._generate_rag_response(message, system_context, language, user)
 
             # Step C: Off-topic Monitoring (Post-processing)
@@ -154,24 +155,35 @@ class EnhancedAIService:
     
     @staticmethod
     def _check_api_status():
-        """Explicitly checks DeepSeek API and tells user the truth."""
+        """Explicitly checks Gemini API and tells user the truth."""
         import ssl
         try:
             # Bypass SSL verification for resilience
             ctx = ssl._create_unverified_context()
             
+            # Gemini Ping Structure (Sending a simple prompt)
+            data = {
+                "contents": [{
+                    "parts": [{"text": "Reply with 'Online'"}]
+                }]
+            }
+            
             req = urllib.request.Request(
-                EnhancedAIService.DEEPSEEK_URL,
-                data=json.dumps({"model": "deepseek-chat", "messages": [{"role": "user", "content": "ping"}]}).encode('utf-8'),
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {EnhancedAIService.DEEPSEEK_API_KEY}"},
+                EnhancedAIService.GEMINI_URL,
+                data=json.dumps(data).encode('utf-8'),
+                headers={"Content-Type": "application/json"},
                 method='POST'
             )
-            with urllib.request.urlopen(req, context=ctx) as response:
-                return {'type': 'system_status', 'message': "✅ **System Diagnosis: ONLINE**\n\nThe AI Brain is fully operational.", 'language': 'en'}
+            with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                # Just check if we got a candidate response
+                if 'candidates' in result:
+                    return {'type': 'system_status', 'message': "✅ **System Diagnosis: ONLINE**\n\nGemini AI is fully operational.", 'language': 'en'}
+                else:
+                    return {'type': 'system_status', 'message': "⚠️ **System Diagnosis: UNSTABLE**\nConnected but received unexpected response.", 'language': 'en'}
+                    
         except urllib.error.HTTPError as e:
-            if e.code == 402:
-                return {'type': 'system_status', 'message': "⚠️ **System Diagnosis: OFFLINE**\n\n**Reason:** AI Provider Payment Required (Quota Exceeded).\n**Impact:** Translation and complex chat features are currently disabled. Basic search and order tools are working.", 'language': 'en'}
-            return {'type': 'system_status', 'message': f"⚠️ **System Diagnosis: ERROR**\nCode: {e.code}", 'language': 'en'}
+            return {'type': 'system_status', 'message': f"⚠️ **System Diagnosis: ERROR**\nCode: {e.code} - {e.reason}", 'language': 'en'}
         except Exception as e:
              return {'type': 'system_status', 'message': f"⚠️ **System Diagnosis: ERROR**\nConnection Failed: {str(e)}", 'language': 'en'}
 
@@ -249,7 +261,7 @@ class EnhancedAIService:
         # This allows answering "What is SokHub" even without DeepSeek
         if 'sokhub' in msg_lower or 'what is this' in msg_lower or 'who are you' in msg_lower or 'company' in msg_lower:
             responses = {
-                'en': "🚀 **About SokHub:**\n\nWe are a premier e-commerce platform connecting vendors and customers in Rwanda. You can buy Electronics, Fashion, Home goods, and more directly from local sellers.\n\nI am the **SokHub AI Assistant**, here to help you find products, check prices, and track orders!",
+                'en': "🚀 **About SokHub:**\n\nWe are a premier e-commerce platform connecting vendors and customers in Rwanda. You can buy Electronics, Fashion, Home goods, and more directly from local sellers.\n\nI am the **SokHub AI Assistant**, powered by **Gemini AI**, here to help you find products, check prices, and track orders!",
                 'rw': "🚀 **Ibyerekeye SokHub:**\n\nTuri urubuga rwo guhahiraho ruhuza abacuruzi n'abaguzi mu Rwanda. Ushobora kugura Ibikoresho by'ikoranabuhanga, Imyenda, n'ibindi byinshi.\n\nNdi **SokHub AI**, nje kugufasha gushaka ibicuruzwa no kumenya ibiciro!",
                 'fr': "🚀 **À propos de SokHub:**\n\nNous sommes une plateforme e-commerce connectant vendeurs et clients. Je suis l'assistant IA SokHub, ici pour vous aider !",
                 'sw': "🚀 **Kuhusu SokHub:**\n\nSisi ni jukwaa la biashara la mtandaoni linalounganisha wauzaji na wateja. Unaweza kununua Vifaa vya Elektroniki, Mitindo, na Bidhaa za Nyumbani."
@@ -348,7 +360,7 @@ class EnhancedAIService:
 
     @staticmethod
     def _generate_rag_response(user_query, context_data, language, user=None):
-        """Uses DeepSeek to generate a response based on System Data (Context)."""
+        """Uses Gemini to generate a response based on System Data (Context)."""
         import ssl
         try:
             # Prepare Context String
@@ -357,37 +369,38 @@ class EnhancedAIService:
             else:
                 context_str = "SYSTEM DATA: None found matching keywords. General Question."
 
-            user_name = user.username if user and hasattr(user, 'username') else "Client"
-            
             # System Prompt
             system_prompt = f"You are SokHub AI, an expert e-commerce assistant. Answer strictly in {language}. If product data is provided, use it to sell the item. If not, explain SokHub's business categories (Electronics, Fashion). Be professional."
 
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {EnhancedAIService.DEEPSEEK_API_KEY}"
-            }
-            
+            # Construct Gemini Payload (using v1beta system_instruction)
             data = {
-                "model": "deepseek-chat",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Context: {context_str}\nQuestion: {user_query}"}
-                ],
-                "stream": False
+                "system_instruction": {
+                    "parts": [{"text": system_prompt}]
+                },
+                "contents": [{
+                    "role": "user",
+                    "parts": [{"text": f"Context: {context_str}\n\nQuestion: {user_query}"}]
+                }]
             }
             
             ctx = ssl._create_unverified_context()
             
             req = urllib.request.Request(
-                EnhancedAIService.DEEPSEEK_URL,
+                EnhancedAIService.GEMINI_URL,
                 data=json.dumps(data).encode('utf-8'),
-                headers=headers,
+                headers={"Content-Type": "application/json"},
                 method='POST'
             )
             
-            with urllib.request.urlopen(req, context=ctx) as response:
+            with urllib.request.urlopen(req, context=ctx, timeout=15) as response:
                 result = json.loads(response.read().decode('utf-8'))
-                ai_reply = result['choices'][0]['message']['content']
+                
+                # Parse Gemini Candidate Response
+                try:
+                    ai_reply = result['candidates'][0]['content']['parts'][0]['text']
+                except (KeyError, IndexError):
+                     ai_reply = "I'm having trouble thinking right now, but I can still help you search for products!"
+
                 return {
                     'type': 'rag_response',
                     'message': ai_reply,
@@ -395,9 +408,15 @@ class EnhancedAIService:
                     'data': context_data
                 }
 
+        except urllib.error.HTTPError as e:
+            # Capture detailed API error message
+            error_body = e.read().decode('utf-8')
+            print(f"Gemini API Error {e.code}: {error_body}")
+            return EnhancedAIService._offline_chat_brain(user_query, context_data, language)
+
         except Exception as e:
             # FORCE OFFLINE MODE - 'Correcting the error' by simulating intelligence
-            print(f"DeepSeek Offline: {e}")
+            print(f"Gemini Offline: {e}")
             return EnhancedAIService._offline_chat_brain(user_query, context_data, language)
 
     @staticmethod
